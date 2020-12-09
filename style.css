@@ -1,0 +1,76 @@
+
+.capture {
+    max-width: 100%;
+    height: auto;
+    width /***/:auto;
+  }
+  .frame {
+    position:absolute;
+    max-width: 105%;
+    height: auto;
+    width /***/:auto;
+    z-index: 4;
+  }
+  
+  .frame2 {
+    position:absolute;
+    /* max-width: 105%; */
+    /* height: auto; */
+    /* width *:auto; */
+    z-index: 4;
+  }
+  
+  .artwork{
+    position:relative;
+    width:60px;
+    height:auto;
+    padding-bottom: 5px;
+  }
+  
+  .caption {
+    color: #6e6e6e;
+    font-size: 0.2em;
+    word-break : break-all;
+    line-height: 4em;
+    border: 1px solid #3d3d3d;
+    background-color: rgba(235, 235, 235, 0.466);
+    padding:5px;
+    width:80px;
+  }
+  
+  .work {
+    padding: 10px;
+    /* height: 120px; */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* justify-content:space-between; */
+    /* align-items: center;*/
+  } 
+  
+  .wall {
+    display: grid;
+    /* 1列目から順番に180px、1fr、160pxの幅 */
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    /* grid-template-columns: repeat(auto-fill, [col-start] minmax(100px, 1fr) [col-end]); */
+    /* column-gap: 10px; */
+    /* row-gap: 10px; */
+  }
+  
+  .container {
+    overflow : hidden;
+      outline : none;
+  }
+  
+  #title{
+    position:absolute;
+    top: 50%;
+    left: 50%;
+    -webkit-transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%);
+    font-size: 1.5em;
+    /* background-color:#fbff96; */
+    /* text-align: center; */
+    z-index: 5;
+  }
+  
