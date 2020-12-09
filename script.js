@@ -95,8 +95,8 @@ function init(csvstr) {
     //controls = new TrackballControls( camera, CSSrenderer.domElement );
 
     controls = new OrbitControls( camera, CSSrenderer.domElement );
-    //controls.maxPolarAngle = Math.PI / 2;
-    //controls.minPolarAngle = Math.PI / 2;
+    controls.maxPolarAngle = Math.PI / 2;
+    controls.minPolarAngle = Math.PI / 2;
 
     createWhiteCube();
     
