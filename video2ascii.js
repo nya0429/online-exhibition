@@ -1,60 +1,53 @@
 import * as THREE from "https://unpkg.com/three@0.122.0/build/three.module.js";
 
-let video2ascii = function (URLs,orgURLs,options) {
+let video2ascii = function (_charset, _asciiMap, options) {
 
     let count = 0;
 
     const video = document.getElementById("video");
-    const oCanvas = document.createElement("canvas");
-    const oCtx = oCanvas.getContext("2d");
 
-    const domElement = document.createElement('div');
-    domElement.style.cursor = 'default';
-    domElement.style.backgroundColor = '#000';    
-    this.domElement = domElement;
-    
-    const oAscii = document.createElement("table");
-    domElement.appendChild(oAscii);
+    const oAscii = document.createElement('div');
+    oAscii.style.cursor = 'default';
+    oAscii.style.backgroundColor = '#000';
+    this.domElement = oAscii;
 
     const scene = new THREE.Scene();
     const camera = new THREE.Camera();
-    const renderer = new THREE.WebGLRenderer( { antialias: true, alpha:true, premultipliedAlpha:false} );
-    renderer.setSize( window.innerWidth, window.innerHeight );
+    const renderer = new THREE.WebGLRenderer({ 
+        alpha: true, 
+        premultipliedAlpha: false,
+        depth:false,
+        stencil:false,
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer = renderer;
-    let oImg = renderer.domElement;
+    const webGLCtx = renderer.getContext();
+    let oImgData = [];
 
-    const urls = URLs;
-    const orgurls = orgURLs;
-    console.log(urls.length,orgurls.length)
-
-    let charset = ".-_~:rvcsijtlf17xzunoeaypqhdbk0gwm4253689"
-    let asciimap = new Array(charset.length);
-    let asciinum = [];
-    let enableKeysNum = 0;
+    const charset = _charset;
+    const asciiMap = _asciiMap;
 
     if (!options) options = {};
-    let bResolution = !options['resolution'] ? 0.15 : options['resolution']; // Higher for more details
+    let fResolution = !options['resolution'] ? 0.15 : options['resolution']; // Higher for more details
     let iScale = !options['scale'] ? 1 : options['scale'];
     let bColor = !options['color'] ? false : options['color']; // nice but slows down rendering!
     let bInvert = !options['invert'] ? false : options['invert']; // black is white, white is black
-    let strResolution = 'low';
 
-    let width, height;//window.innerWidth/innerHeight
-    let iWidth, iHeight;
+    let width, height;
+    let iWidth = 0;
+    let iHeight = 0;
+    let iPixel = 0;
 
     let constraints = {
-        audio:false,
+        audio: false,
         video: {
-            facingMode:"user",
+            facingMode: "user",
             width: width,
             height: height,
         },
     };
 
 
-    let fResolution = 0.5;
-    let fLetterSpacing = 0;
-    
     //debug
     //oCanvas.style.position = "absolute"
     //oCanvas.style.left = "0px"
@@ -67,16 +60,14 @@ let video2ascii = function (URLs,orgURLs,options) {
     //renderer.domElement.style.top = "0px"
     //renderer.domElement.style.zIndex = "3"
     //document.body.appendChild( renderer.domElement );
-    
-    setChar()
+
     createScene();
-    setResolution();
 
     this.setSize = function (w, h) {
         width = Math.round(w);
         height = Math.round(h);
-        console.log(width,height)
-        initAsciiSize();
+        console.log(width, height)
+        setAsciiSize();
         start();
 
     };
@@ -84,15 +75,15 @@ let video2ascii = function (URLs,orgURLs,options) {
     function start() {
 
         if (window.stream) {
-          window.stream.getTracks().forEach(track => {
-            track.stop();
-          });
+            window.stream.getTracks().forEach(track => {
+                track.stop();
+            });
         }
 
         //let aspect = String(Math.round(width/height*100)/100);
         //console.log("aspect",aspect);
         constraints = {
-            audio:false,
+            audio: false,
             video: {
                 facingMode: "user",
                 width: width,
@@ -112,25 +103,31 @@ let video2ascii = function (URLs,orgURLs,options) {
         console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
     }
 
-    function createScene(){
+    function createScene() {
 
-        let texture = new THREE.VideoTexture( video );
-        const vs =`
+        let texture = new THREE.VideoTexture(video);
+        const vs = `
+        precision mediump float;
+
+        attribute vec3 position;
+        attribute vec2 uv;
+        
         varying vec2 vUv;
-    
+
         void main()	{
     
             vUv = uv;
-    
             gl_Position = vec4( position, 1.0 );
     
         }`;
-        const fs =`
-        varying vec2 vUv;
+        const fs = `
+        precision mediump float;
+
         uniform sampler2D map;
         uniform float charsetLength;
         uniform bool inv;
-        //uniform int[] uIntArray;
+
+        varying vec2 vUv;
     
         void main()	{
             vec4 color = texture2D(map, vUv);
@@ -138,142 +135,47 @@ let video2ascii = function (URLs,orgURLs,options) {
             fBrightness = inv ? fBrightness:1.0-fBrightness;
             gl_FragColor = vec4(color.rgb,fBrightness);
         }`;
-    
-        const geometry = new THREE.PlaneBufferGeometry( 2, 2 );
+
+        const geometry = new THREE.PlaneBufferGeometry(2, 2);
         let uniforms = {
-            map: { value : texture},
-            inv:{value:bInvert},
-            charsetLength:{value:charset.length-1},
-            //uIntArray:{value:[1,2,3]},
+            map: { value: texture },
+            inv: { value: bInvert },
+            charsetLength: { value: charset.length - 1 },
         };
-    
-        const material = new THREE.ShaderMaterial( {
-    
+
+        const material = new THREE.RawShaderMaterial({
+
             uniforms: uniforms,
             vertexShader: vs,
             fragmentShader: fs,
-    
-        } );
-    
-        let mesh = new THREE.Mesh( geometry, material );
-        scene.add( mesh );
+
+        });
+
+        let mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
 
     }
-    function setChar(){
 
-        for(let i = 0; i<charset.length; i++){
-            asciimap[i] = [];
-        }
-
-        for (let i = 0; i < orgurls.length; ++i) {
-            let orgurl = orgurls[i];
-            for (let j = 0; j < orgurl.length; j++) {
-                //let char = orgurl.charAt(j);
-                let index = charset.indexOf(orgurl[j]);
-                if (index > -1) {
-                    asciimap[index].push(i)
-                }
-            }
-        }
-
-        for(let i = charset.length; i>0; i--){
-            let num = asciimap[i-1].length;
-            if(num == 0){
-                charset = charset.replace(charset[i-1],"");
-            }else{
-                enableKeysNum += num;
-                asciinum.push(num);
-            }
-        }
-
-        asciimap = asciimap.filter(el=>el.length>0)
-
-    }
-    function setResolution() {
-
-        switch (strResolution) {
-
-            case "low": fResolution = 0.25; break;
-            case "medium": fResolution = 0.5; break;
-            case "high": fResolution = 1; break;
-
-        }
-
-        if (bResolution) fResolution = bResolution;
-
-        if (strResolution == "low") {
-
-            switch (iScale) {
-
-                case 1: fLetterSpacing = - 1; break;
-                case 2:
-                case 3: fLetterSpacing = - 2.1; break;
-                case 4: fLetterSpacing = - 3.1; break;
-                case 5: fLetterSpacing = - 4.15; break;
-
-            }
-
-        }
-
-        if (strResolution == "medium") {
-
-            switch (iScale) {
-
-                case 1: fLetterSpacing = 0; break;
-                case 2: fLetterSpacing = - 1; break;
-                case 3: fLetterSpacing = - 1.04; break;
-                case 4:
-                case 5: fLetterSpacing = - 2.1; break;
-
-            }
-
-        }
-
-        if (strResolution == "high") {
-
-            switch (iScale) {
-
-                case 1:
-                case 2: fLetterSpacing = 0; break;
-                case 3:
-                case 4:
-                case 5: fLetterSpacing = - 1; break;
-
-            }
-
-        }
-    }
-
-    let strFont = "courier new, monospace";
-
+    let strFont = "'Roboto Mono', monospace";
     let fFontSize = (2 / fResolution) * iScale;
-    let fLineHeight = ( 2 / fResolution ) * iScale;
-    console.log(fResolution)
+    initAsciiSize();
+
+    let aNodeList = [];
 
     function initAsciiSize() {
 
-        iWidth = Math.round(width * fResolution);
-        iHeight = Math.round(height * fResolution/2);
-
-        oCanvas.width = iWidth;
-        oCanvas.height = iHeight;
-        //oCanvas.style.display = "none";
-
-        renderer.setSize(iWidth,iHeight);
-
-		oAscii.cellSpacing = 0;
+        oAscii.cellSpacing = 0;
         oAscii.cellPadding = 0;
 
         let oStyle = oAscii.style;
-        oStyle.width = Math.round(iWidth / fResolution * iScale) + "px";
-        oStyle.height = Math.round(iHeight / fResolution * iScale) + "px";
+        //oStyle.width = Math.round(iWidth / fResolution * iScale) + "px";
+        //oStyle.height = Math.round(iHeight / fResolution * iScale) + "px";
         oStyle.whiteSpace = "pre";
         oStyle.margin = "0px";
         oStyle.padding = "0px";
         oStyle.fontFamily = strFont;
         oStyle.fontSize = fFontSize + "px";
-        oStyle.lineHeight = fLineHeight + "px";
-        oStyle.letterSpacing = fLetterSpacing + "px";
+        oStyle.lineHeight = 1;
         oStyle.textAlign = "left";
         oStyle.textDecoration = "none";
         oStyle.borderCollapse = 'separate';
@@ -281,120 +183,146 @@ let video2ascii = function (URLs,orgURLs,options) {
 
     }
 
+    const createAsciiElements=()=>{
+
+        let preWidth = iWidth;
+        let preHeight = iHeight;
+        let prePixel = preWidth * preHeight;
+
+        iWidth = Math.round(width * fResolution);
+        iHeight = Math.round(height * fResolution / 2);
+        iPixel = iWidth*iHeight;
+
+        oImgData = new Uint8Array(4 * iPixel);
+
+        renderer.setSize(iWidth, iHeight);
+
+        console.log("Size", iWidth, iHeight,"preSize", preWidth, preHeight);
+        console.log("pixel", iPixel,"prePixel", prePixel);
+
+        let a,br;
+        for (let i = prePixel; i < iPixel; i++) {
+            a = document.createElement('a');
+            a.target = "_blank"
+            //a.id = "a" + i;
+            oAscii.appendChild(a);
+        }
+        for (let i = preHeight+1; i < iHeight; i++) {
+            br = document.createElement('br');
+            oAscii.appendChild(br);
+        }
+
+        aNodeList = oAscii.getElementsByTagName('a');
+
+    }
+
+    const alignmentAsciiElements=()=>{
+        //let aNodeList = oAscii.getElementsByTagName('a');
+        let brNodeList = oAscii.getElementsByTagName('br');
+
+        console.log("aListLength", aNodeList.length, "brListLength", brNodeList.length)
+
+        for (let i = aNodeList.length - 1; i >= iPixel; i--) {
+            aNodeList[i].remove();
+        }
+        for (let i = brNodeList.length - 1; i >= iHeight; i--) {
+            brNodeList[i].remove();
+        }
+
+        for (let y = 1; y < iHeight; y++) {
+            oAscii.insertBefore(brNodeList[y - 1], aNodeList[y * iWidth]);
+        }
+        brNodeList = [];
+    }
+
+    function setAsciiSize() {
+
+        Promise.resolve(1) // まずPromiseの最初の呼び出し部分は引数渡すだけにする
+            .then(createAsciiElements) // 次にthenで各非同期処理を呼び出す
+            .then(alignmentAsciiElements)
+            .catch(() => {console.log("onRejectted", v);});
+
+    }
+
+    let tmpMap = [];
+
     this.asciifyImage = () => {
 
-        count++;
-        if(count%15!=0){
+        // count++;
+        // if(count%100!=0){
+        //     return;
+        // }
+
+        if(aNodeList.length == 0){
             return;
         }
 
-        renderer.render(scene,camera);
-        oCtx.clearRect(0, 0, iWidth, iHeight);
-        oCtx.drawImage(oImg, 0, 0, iWidth, iHeight);
-        let oImgData = oCtx.getImageData(0, 0, iWidth, iHeight).data;
-        let strChars = "";
+        renderer.render(scene, camera);
+        webGLCtx.readPixels(0, 0, webGLCtx.drawingBufferWidth, webGLCtx.drawingBufferHeight, webGLCtx.RGBA, webGLCtx.UNSIGNED_BYTE, oImgData);
+        tmpMap = JSON.parse(JSON.stringify(asciiMap));
 
-        // let counter = (new Array(charset.length)).fill(0);
-
-        // let check = asciinum.concat();
-        // let alphaArray = oImgData.filter(
-        //     function(el,i){
-        //         return i%4 === 3
-        //     })
-        // alphaArray.map(
-        //     function(el,i){
-        //         let iCharIdx = Math.floor(el/255 * (charset.length-1));
-        //         return iCharIdx
-        //     }
-        // )
-
-        // let mapped = Array.from(alphaArray)
-        // .map(function(el, i){
-        //     let iCharIdx = Math.floor((bInvert ? 1-el/255 : el/255)*(charset.length-1));
-        //     counter[iCharIdx]++;
-        //     return ({"index":i,"value":iCharIdx,"link":0});
-        // })
-        // .sort(function(a,b){
-        //     return a.value - b.value;
-        // });
-
-        // console.log(mapped)
-
-        // let pos = 0;
-        // let over = 0;
-        // for(let i = 0; i<asciimap.length; i++){
-
-        //     let count = counter[i]+over;
-        //     let enable = asciimap[i].length;
-
-        //     for(let j = 0; j<Math.min(count,enable); j++){
-        //         mapped[pos].value =i;
-        //         mapped[pos].link =j;
-        //         pos++;
-        //     }
-
-        //     if(count>enable){
-        //         over = count-enable;
-        //     }else{
-        //         over = 0;
-        //     }
-
-        //     pos = enable;
-        // }
-        
-        // mapped.sort(function(a,b){
-        //     return a.index - b.index;
-        // })
-
-        // let charidx = mapped.map(function(el){
-        //     return el.value;
-        // });
-        // let linkidx = mapped.map(function(el){
-        //     return el.link;
-        // });
-
-        //console.time('rendering');
-
+        let i,iOffset,iCharIdx,strThisChar;
+        let tmplist,find,rand,color,span,atag;
+        let charlength = charset.length - 1;
+        let tmp = charlength/255;
         for (let y = 0; y < iHeight; y++) {
-            if(y != 0){
-                strChars += "<br/>";
-            }
             for (let x = 0; x < iWidth; x++) {
+                i = y * iWidth + x;
+                iOffset = ((iHeight-y)*iWidth-x-1) * 4;
+                iCharIdx = Math.floor(oImgData[iOffset + 3]*tmp);
+                strThisChar = charset[iCharIdx];
 
-                let iOffset = (y * iWidth + x) * 4;
-                
-                let iRed = oImgData[iOffset];
-                let iGreen = oImgData[iOffset + 1];
-                let iBlue = oImgData[iOffset + 2];
-                let iAlpha = oImgData[iOffset + 3];
+                tmplist = tmpMap[iCharIdx];
+                find = true;
 
-                let iCharIdx = Math.floor(iAlpha/255 * (charset.length-1));
-                let strThisChar = charset[iCharIdx];
+                while (tmplist.length == 0) {
+                    iCharIdx++;
+                    if (iCharIdx >= tmpMap.length) {
+                        find = false;
+                        iCharIdx = charlength;
+                        tmplist = asciiMap[iCharIdx];
+                        break;
+                    }
+                    tmplist = tmpMap[iCharIdx];
+                }
 
-                if (strThisChar === undefined || strThisChar == " ")
-                    strThisChar = "&nbsp;";
+                rand = Math.floor(Math.random() * tmplist.length);
+                color = "rgb("+oImgData[iOffset]+","+oImgData[iOffset+1]+","+oImgData[iOffset+2]+")";
 
-                //console.log(iCharIdx,linkidx[iOffset])
-                //let url = urls[asciimap[iCharIdx][linkidx[iOffset]]]
-                let url = urls[asciimap[iCharIdx][Math.floor(Math.random() * asciimap[iCharIdx].length)]]
+                span = asciiMap[iCharIdx][rand].span;
+                span.style.color = color;//重い
+                span.style.fontWeight = "bold";
+                span.tint = true;
 
-                if (bColor) {
+                atag = aNodeList[i];
+                atag.style.color = color;
+                atag.href = tmplist[rand].url;
+                atag.innerText = strThisChar;//重い
 
-                    strThisChar = "<span style='"
-                        + "color:rgb(" + iRed + "," + iGreen + "," + iBlue + ");"
-                        + "'>" + strThisChar + "</span>";
-
-                } 
-
-                strThisChar = '<a href=' + url + ' target="_blank">' + strThisChar + '</a>'
-                strChars += strThisChar;
-
-            }            
+                if (find) {
+                    tmplist.splice(rand,1);
+                }
+            }
         }
+        tmpMap = [];
+        resetSpanStyle();
+    }
 
-        oAscii.innerHTML = "<tr><td>" + strChars + "</td></tr>";
-        //console.timeEnd('rendering');
-
+    function resetSpanStyle(){
+        let map,obj;
+        for(let i = 0; i<asciiMap.length; i++){
+            map = asciiMap[i];
+            for(let j = 0; j<map.length; j++){
+                obj = map[j]
+                if(obj.pretint && !obj.tint){
+                    obj.span.removeAttribute('color')
+                    obj.span.removeAttribute('font-weight')
+                }
+                obj.pretint = obj.tint;
+                obj.tint = false;
+            }
+        }
+    
     }
 
     start();
