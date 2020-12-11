@@ -1,9 +1,9 @@
 body {
 	margin: 0;
-	background-color: #000;
+	/* background-color: #000; */
 	color: #fff;
-	font-size: 13px;
-	line-height: 24px;
+	/* font-size: 13px; */
+	/* line-height: 24px; */
 	overscroll-behavior: none;
 	font-family: 'Roboto Mono', monospace;
 }
@@ -16,51 +16,65 @@ a {
 	color: #ffffff;
 	text-decoration: none;
 	contain:strict;
-	/* rel:"nofollow"; */
+	pointer-events: auto;
 }
 
 canvas {
 	display: block;
-}
-
-a, button, input, select {
-	pointer-events: auto;
-}
-
-.dg.ac {
-	-moz-user-select: none;
-	-webkit-user-select: none;
-	-ms-user-select: none;
-	user-select: none;
-	z-index: 2 !important; /* TODO Solve this in HTML */
-}
-
-#overlay {
-	position: absolute;
-	z-index: 2;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background: rgba(0,0,0,0.7);
-}
-
-	#overlay button {
-		background: #ffffff;
-		border: 0;
-		color: #000000;
-		padding: 16px 20px;
-		text-transform: uppercase;
-		cursor: pointer;
+}	
+.capture {
+	width:60px;
+	height: auto;
+	padding-bottom: 10px;
 	}
 
-#notSupported {
-	width: 50%;
-	margin: auto;
-	background-color: #f00;
-	margin-top: 20px;
-	padding: 10px;
+.captionChar{
+	contain: strict;
+	}
+
+.caption {
+	color: #6e6e6e;
+	font-size: 0.2em;
+	word-break : break-all;
+	line-height: 4em;
+	border: 1px solid #3d3d3d;
+	background-color: rgba(235, 235, 235, 0.466);
+	padding:5px;
+	width:80px;
+	}
+
+.work {
+padding: 10px;
+/* height: 120px; */
+display: flex;
+flex-direction: column;
+align-items: center;
+} 
+
+.wall {
+display: grid;
+/* 1列目から順番に180px、1fr、160pxの幅 */
+grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+/* contain:strict; */
+content-visibility: auto;
+/* grid-template-columns: repeat(auto-fill, [col-start] minmax(100px, 1fr) [col-end]); */
+/* column-gap: 10px; */
+/* row-gap: 10px; */
+}
+
+.container {
+overflow : hidden;
+outline : none;
+}
+
+#title{
+position:absolute;
+top: 50%;
+left: 50%;
+-webkit-transform: translate(-50%, -50%);
+transform: translate(-50%, -50%);
+font-size: 1.5em;
+z-index: 5;
+background-color:rgba(0,0,0,0.5);
+/* text-align: center; */
 }

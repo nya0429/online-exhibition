@@ -9,6 +9,7 @@ let camera, controls, scene, renderer, box;
 let CSSrenderer, CSSscene;
 let walls = [];
 let effect;
+//ffmpeg -i input.webp -vcodec png output.png
 
 const padding = 0.9;
 const marks = '[\\/:*?"<>|]+';
@@ -32,6 +33,7 @@ init();
 function init() {
 
     getCSV();
+    debug();
 
     const container = document.getElementById('container');
 
@@ -54,11 +56,11 @@ function init() {
 
     createWhiteCube();
 
-    let frame = document.createElement('img');
-    frame.className = 'frame2'
-    frame.src = "./material/frame.png";
-    frame.width = window.innerWidth / 2 * 1.1;
-    frame.height = window.innerHeight / 2;
+    //let frame = document.createElement('img');
+    //frame.className = 'frame2'
+    //frame.src = "./material/frame.png";
+    //frame.width = window.innerWidth / 2 * 1.1;
+    //frame.height = window.innerHeight / 2;
 
     // const object = new CSS3DObject( effect.domElement );
     // object.rotation.y = Math.PI/2;
@@ -96,13 +98,13 @@ function onWindowResize() {
 
 function animate() {
 
-    //stats.begin();
+    stats.begin();
 
     effect.asciifyImage();
     controls.update();
     CSSrenderer.render(CSSscene, camera);
     renderer.render(scene, camera);
-    //stats.end();
+    stats.end();
     requestAnimationFrame(animate);
 
 }
@@ -180,14 +182,14 @@ function loadURLs(csvstr) {
         capture.className = 'capture'
         capture.src = "./img/" + displayURL.replace(regExp, '') + ".png";
 
-        frame = document.createElement('img');
-        frame.className = 'frame'
-        frame.src = "./material/frame.png";
+        // frame = document.createElement('img');
+        // frame.className = 'frame'
+        // frame.src = "./material/frame.png";
 
-        artwork = document.createElement('div');
-        artwork.className = 'artwork'
+        //artwork = document.createElement('div');
+        //artwork.className = 'artwork'
         //artwork.appendChild(frame)
-        artwork.appendChild(capture)
+        //artwork.appendChild(capture)
 
         caption = document.createElement('div');
         caption.className = 'caption'
@@ -216,7 +218,7 @@ function loadURLs(csvstr) {
         work.className = 'work'
         //walls[i].style.contentVisibility = "auto"
 
-        work.appendChild(artwork)
+        work.appendChild(capture)
         work.appendChild(caption)
         walls[i % 3].appendChild(work);
 
@@ -269,10 +271,10 @@ function debug() {
     stats = new Stats();
     document.body.appendChild(stats.dom);
 
-    let str = "its all here."
-    str = toAngou(str)
-    str = toChar(str)
-    console.log(str)
+    // let str = "its all here."
+    // str = toAngou(str)
+    // str = toChar(str)
+    // console.log(str)
 
 }
 
