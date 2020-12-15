@@ -200,60 +200,21 @@ let video2ascii = function (_charset, _asciiMap, options) {
         console.log("Size", iWidth, iHeight,"preSize", preWidth, preHeight);
         console.log("pixel", iPixel,"prePixel", prePixel);
 
-        let a,br;
-        for (let i = prePixel; i < iPixel; i++) {
-            a = document.createElement('a');
-            a.target = "_blank"
-            //a.id = "a" + i;
-            oAscii.appendChild(a);
-        }
-        for (let i = preHeight+1; i < iHeight; i++) {
-            br = document.createElement('br');
-            oAscii.appendChild(br);
-        }
-
-        aNodeList = oAscii.getElementsByTagName('a');
-
-    }
-
-    const alignmentAsciiElements=()=>{
-        //let aNodeList = oAscii.getElementsByTagName('a');
-        let brNodeList = oAscii.getElementsByTagName('br');
-
-        console.log("aListLength", aNodeList.length, "brListLength", brNodeList.length)
-
-        for (let i = aNodeList.length - 1; i >= iPixel; i--) {
-            aNodeList[i].remove();
-        }
-        for (let i = brNodeList.length - 1; i >= iHeight; i--) {
-            brNodeList[i].remove();
-        }
-
-        for (let y = 1; y < iHeight; y++) {
-            oAscii.insertBefore(brNodeList[y - 1], aNodeList[y * iWidth]);
-        }
-        brNodeList = [];
     }
 
     function setAsciiSize() {
 
         Promise.resolve(1) // まずPromiseの最初の呼び出し部分は引数渡すだけにする
             .then(createAsciiElements) // 次にthenで各非同期処理を呼び出す
-            .then(alignmentAsciiElements)
             .catch(() => {console.log("onRejectted", v);});
 
     }
 
     let tmpMap = [];
 
-    this.asciifyImage = () => {
+    this.asciifyImage = (asciiMesh) => {
 
-        // count++;
-        // if(count%100!=0){
-        //     return;
-        // }
-
-        if(aNodeList.length == 0){
+        if(asciiMesh == null){
             return;
         }
 
@@ -264,8 +225,14 @@ let video2ascii = function (_charset, _asciiMap, options) {
         let i,iOffset,iCharIdx,strThisChar;
         let tmplist,find,rand,color,span,atag;
         let charlength = charset.length - 1;
+        let strChars = ""
         let tmp = charlength/255;
+        let threeColor = new THREE.Color();
+
         for (let y = 0; y < iHeight; y++) {
+            if(y != 0){
+                strChars += "<br/>";
+            }
             for (let x = 0; x < iWidth; x++) {
                 i = y * iWidth + x;
                 iOffset = ((iHeight-y)*iWidth-x-1) * 4;
@@ -288,43 +255,24 @@ let video2ascii = function (_charset, _asciiMap, options) {
 
                 rand = Math.floor(Math.random() * tmplist.length);
                 color = "rgb("+oImgData[iOffset]+","+oImgData[iOffset+1]+","+oImgData[iOffset+2]+")";
+                
+                //console.log(tmplist[rand]);
 
-                span = asciiMap[iCharIdx][rand].span;
-                span.style.color = color;//重い
-                span.style.fontWeight = "bold";
-                span.tint = true;
+                let url = tmplist[rand].url
+                strThisChar = '<a href=' + url + ' target="_blank" style=color:'+color+'>' + strThisChar + '</a>'
+                strChars += strThisChar;
 
-                atag = aNodeList[i];
-                atag.style.color = color;
-                atag.href = tmplist[rand].url;
-                atag.innerText = strThisChar;//重い
+                threeColor.setRGB(oImgData[iOffset]/255,oImgData[iOffset+1]/255,oImgData[iOffset+2]/255)
+                asciiMesh.setColorAt(tmplist[rand].id,threeColor)
 
                 if (find) {
                     tmplist.splice(rand,1);
                 }
             }
         }
-        tmpMap = [];
-        resetSpanStyle();
-    }
 
-    function resetSpanStyle(){
-        let map,obj;
-        for(let i = 0; i<asciiMap.length; i++){
-            map = asciiMap[i];
-            for(let j = 0; j<map.length; j++){
-                obj = map[j]
-                if(obj.pretint && !obj.tint){
-                    obj.span.removeAttribute('color')
-                    obj.span.removeAttribute('font-weight')
-                }
-                obj.pretint = obj.tint;
-                obj.tint = false;
-            }
-        }
-    
+        oAscii.innerHTML = strChars;
     }
-
     start();
 }
 

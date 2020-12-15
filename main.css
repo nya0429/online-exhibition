@@ -57,6 +57,8 @@ display: grid;
 grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
 /* contain:strict; */
 content-visibility: auto;
+contain: strict;
+
 /* grid-template-columns: repeat(auto-fill, [col-start] minmax(100px, 1fr) [col-end]); */
 /* column-gap: 10px; */
 /* row-gap: 10px; */
