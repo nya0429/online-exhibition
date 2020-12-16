@@ -1,24 +1,19 @@
-//import * as THREE from "https://unpkg.com/three@0.122.0/build/three.module.js";
-import * as THREE from "./node_modules/three/build/three.module.js";
-
+import * as THREE from "https://unpkg.com/three@0.122.0/build/three.module.js";
+//import * as THREE from "./node_modules/three/build/three.module.js";
 import { TrackballControls } from "https://unpkg.com/three@0.122.0/examples/jsm/controls/TrackballControls.js";
 import { OrbitControls } from "https://unpkg.com/three@0.122.0/examples/jsm/controls/OrbitControls.js";
 import { CSS3DRenderer, CSS3DObject } from 'https://unpkg.com/three@0.122.0/examples/jsm/renderers/CSS3DRenderer.js';
 import { video2ascii } from "./video2ascii.js";
 import Stats from "https://unpkg.com/three@0.122.0/examples/jsm/libs/stats.module.js";
-import { JSZip } from './node_modules/three/examples/jsm/libs/jszip.module.min.js';
-import { WEBGL } from './node_modules/three/examples/jsm/WebGL.js';
 
-let camera, controls, scene, renderer, box;
+let camera, controls, box;
+let renderer,scene;
 let CSSrenderer, CSSscene;
-let walls = [];
 let effect;
+let effectCSS;
 
-const padding = 0.9;
 const marks = '[\\/:*?"<>|]+';
 const regExp = new RegExp(marks, "g");
-
-let boxScale = new THREE.Vector3(window.innerWidth, window.innerHeight * 2, window.innerWidth);
 
 const displayURLs = [];
 const linkURLs = [];
@@ -28,28 +23,63 @@ let charset = ".-_~:/?=&rvcsijtlf17xzunoeaypqhdbk0gwm4253689ABCDEFGHIJKLMNOPQRST
 //#
 let asciiMap = [];
 let asciiTexture;
-let asciiPositionAttribute;
 let asciiMesh;
-
 let captureMesh;
-let capturePositionAttribute;
+
+let Device = "other";
 
 init()
 
+function setDeviceInfo(){
+
+    console.log(navigator.userAgent)
+
+    let ua = navigator.userAgent;
+    if(ua.indexOf('iPhone')+1 || ua.indexOf('Mobile')+1 || ua.indexOf('iPad')+1 || ua.indexOf('Android')+1){
+        console.log("smartphone device")
+    }
+
+}
+
 function init() {
 
-    getCSV();
+    setDeviceInfo();
+    loadCSV();
 
     stats = new Stats();
     document.body.appendChild(stats.dom);
+
+    renderer = new THREE.WebGLRenderer({
+        depth: false,
+        stencil: false,
+        antialias : true,
+    });
+    renderer.domElement.id = "background"
+    renderer.domElement.style.position = "absolute"
+    renderer.domElement.style.left = "0px"
+    renderer.domElement.style.top = "0px"
+    renderer.domElement.style.zIndex = "-1"
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
+
+    scene = new THREE.Scene();
+
+    // lights
+    let mainLight = new THREE.PointLight(0xcccccc, 2, 1600);
+    mainLight.position.y = 60;
+
+    scene.add(mainLight);
 
     const container = document.getElementById('container');
 
     let deg = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
     camera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 1, 10000);
-    //camera.position.set(0.0001, 0, 0)
-    camera.lookAt(0, 0, 0)
-    camera.position.set(10, 10, 10);
+    camera.position.set(0.0001, 0, 0)
+    camera.lookAt(1, 0, 0)
+    camera.updateProjectionMatrix();
+
+    //camera.position.set(10, 10, 10);
     //camera.lookAt(0,0,1)
 
     CSSscene = new THREE.Scene();
@@ -57,45 +87,36 @@ function init() {
     CSSrenderer.setSize(window.innerWidth, window.innerHeight);
     container.appendChild(CSSrenderer.domElement);
 
-    effect = new video2ascii(charset, asciiMap, { color: true, invert: true });
+    effect = new video2ascii(charset, asciiMap, { color: true, invert: true ,resolution:0.15});
     effect.setSize(window.innerWidth / 2, window.innerHeight / 2);
 
-    let div = document.createElement('div')
-    div.appendChild(effect.domElement);
-    const object = new CSS3DObject(div);
-    object.rotation.y = Math.PI / 2;
-    object.position.set(-window.innerWidth / 2, 0, 0);
-    CSSscene.add(object);
+    effectCSS = new CSS3DObject(effect.domElement);
+    effectCSS.rotation.y = Math.PI / 2;
+    effectCSS.position.set(-window.innerWidth / 2, 0, 0);
+    CSSscene.add(effectCSS);
 
-    controls = new TrackballControls(camera, CSSrenderer.domElement);
-    //controls = new OrbitControls(camera, CSSrenderer.domElement);
-    //controls.maxPolarAngle = Math.PI / 2;
-    //controls.minPolarAngle = Math.PI / 2;
+    //controls = new TrackballControls(camera, CSSrenderer.domElement);
+    controls = new OrbitControls(camera, CSSrenderer.domElement);
+    controls.maxPolarAngle = Math.PI / 2;
+    controls.minPolarAngle = Math.PI / 2;
 
     window.addEventListener('resize', onWindowResize, false);
-    //effect.asciifyImage();
 
 }
 
 function onWindowResize() {
 
-    //CSSrenderer.setSize(window.innerWidth, window.innerHeight);
-
     camera.fov = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 
-    // for (let i = 0; i < walls.length; i++) {
-    //     walls[i].style.width = window.innerWidth * padding + 'px';
-    //     walls[i].style.height = window.innerHeight * 1.5 + 'px';
-    // }
+    effect.setSize(window.innerWidth / 2, window.innerHeight / 2);
 
-    // for (let obj in CSSscene.children) {
-    //     CSSscene.children[obj].position.normalize().multiplyScalar(window.innerWidth / 2)
-    // }
-    boxScale.set(window.innerWidth, window.innerHeight * 2, window.innerWidth);
-    box.scale.set(boxScale.x, boxScale.y, boxScale.z);
+    effectCSS.position.set(-window.innerWidth / 2, 0, 0);
+    box.scale.set(window.innerWidth, window.innerHeight * 2, window.innerWidth);
     resizeAsciis();
+
+    CSSrenderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setSize(window.innerWidth, window.innerHeight);
 
 }
@@ -104,18 +125,15 @@ function animate() {
 
     requestAnimationFrame(animate);
 
-    //console.log(tmpTexture);
     stats.begin();
-    update();
     effect.asciifyImage(asciiMesh);
-    asciiMesh.instanceColor.needsUpdate = true;
-    controls.update();
+    //controls.update();
     CSSrenderer.render(CSSscene, camera);
     renderer.render(scene, camera);
     stats.end();
 }
 
-function getCSV() {
+function loadCSV() {
     let req = new XMLHttpRequest();
     req.open("get", "./online_exhibition_list.csv", true);
     req.send(null);
@@ -126,59 +144,19 @@ function getCSV() {
 
 function loadURLs(csvstr) {
 
-    renderer = new THREE.WebGLRenderer({
-        depth: false,
-        stencil: false,
-    });
-    renderer.domElement.id = "background"
-    renderer.domElement.style.position = "absolute"
-    renderer.domElement.style.left = "0px"
-    renderer.domElement.style.top = "0px"
-    renderer.domElement.style.zIndex = "-1"
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-
-    scene = new THREE.Scene();
-
-    let box = new THREE.Mesh(
-        new THREE.BoxBufferGeometry(10, 10, 10),
-        new THREE.MeshNormalMaterial()
-    )
-    //scene.add(box)
-    //console.log(box);
-
-    // lights
-    let mainLight = new THREE.PointLight(0xcccccc, 2, 1600);
-    mainLight.position.y = 60;
-    scene.add(mainLight);
-
-    document.body.appendChild(renderer.domElement);
-
     for (let i = 0; i < charset.length; i++) {
         asciiMap[i] = [];
     }
 
-    for (let i = 0; i < 3; i++) {
-        walls[i] = document.createElement('div');
-        walls[i].className = 'wall';
-        walls[i].style.width = window.innerWidth * padding + 'px';
-        walls[i].style.height = window.innerHeight * 1.5 + 'px';
-        walls[i].style.contentVisibility = "auto"
-    }
-
-    let instanceUV = [];
-    let instancePos = [];
-    let captureInstanceUV = [];
-    let captureInstancePos = [];
-    let captureInstanceTexture = [];
-    let captureInstanceURL = [];
     let urls = csvstr.split("\n");
     let asciinum = 0;
-    let capture, artwork, caption, frame, span;
-    let loader = new THREE.DataTextureLoader();
-    //let loader = new THREE.TextureLoader();
+    let capture, artwork, caption, frame, span,url;
 
-    let tex;
+    let asciiInstanceUV = [];
+    let captureInstanceUV = [];
+    let captureInstanceURL = [];
+    let asciiInstanceAlpha = [];
+
 
     for (let i = 0; i < urls.length; ++i) {
 
@@ -189,49 +167,21 @@ function loadURLs(csvstr) {
         displayURLs[i] = displayURL;
         linkURLs[i] = linkURL;
 
-        capture = document.createElement('img');
-        capture.className = 'capture'
-        capture.src = "./img/" + displayURL.replace(regExp, '') + ".png";
-
-        caption = document.createElement('div');
-        caption.className = 'caption'
-        caption.id = 'caption' + i;
-
         captureInstanceUV.push(i);
-        captureInstancePos.push(0);
-        captureInstancePos.push(i * 3);
-        captureInstancePos.push(0);
-
-        // tex = loader.load("./img/" + displayURL.replace(regExp, '') + ".png",function(texture){
-        //     console.log(texture.image.src)
-        // });
-        //tex = loader.load("./img/" + displayURL.replace(regExp, '') + ".png");
-        //https://discourse.threejs.org/t/datatexture-to-uint8array/3713
-        //captureInstanceTexture.push(tex.image.data);
-
-        let str = "./img/" + displayURL.replace(regExp, '') + ".png"
-        captureInstanceURL.push(str);
+        captureInstanceURL.push("./img/" + displayURL.replace(regExp, '') + ".png");
 
         for (let j = 0; j < displayURL.length; j++) {
 
-            span = document.createElement('span');
-            span.className = 'captionChar';
-            span.innerText = displayURL[j];
-            caption.appendChild(span);
-
             let index = charset.indexOf(displayURL[j]);
-            instanceUV.push(index);
-            instancePos.push(j);
-            instancePos.push(i * 3);
-            instancePos.push(0);
+
+            asciiInstanceUV.push(index);
+            asciiInstanceAlpha.push(1);
 
             let obj = {
                 url: linkURL,
-                span: span,
-                tint: false,
-                pretint: false,
                 id: asciinum + j,
             }
+
             asciiMap[index].push(obj)
             if (index == -1) {
                 console.log("not found ", obj);
@@ -239,17 +189,10 @@ function loadURLs(csvstr) {
         }
 
         asciinum += col[0].length
-
-        let work = document.createElement('div');
-        work.className = 'work'
-
-        work.appendChild(capture)
-        work.appendChild(caption)
-        walls[i % 3].appendChild(work);
-
     }
 
     console.log(asciinum);
+
     // for (let i = charset.length; i > 0; i--) {
     //     let num = asciiMap[i - 1].length;
     //     if (num == 0) {
@@ -259,167 +202,193 @@ function loadURLs(csvstr) {
 
     // asciiMap = asciiMap.filter(el => el.length > 0)
 
-    createAsciis(instanceUV, instancePos);
-    createCaptures(captureInstanceUV, captureInstancePos, captureInstanceURL);
     createWhiteCube();
+    createAsciis(asciiInstanceUV,asciiInstanceAlpha);
+    createCaptureTexture(captureInstanceURL,(canvas)=>{
+        //document.body.appendChild(canvas)
+        createCaptures(captureInstanceUV,canvas);
+        onWindowResize();
+        animate();    
 
-    scene.add(new THREE.GridHelper(1000, 100))
+    })
 
-    onWindowResize();
-    animate();
 }
 
-function createAsciis(instanceUV, instancePos) {
+function createAsciis(asciiInstanceUV,asciiInstanceAlpha) {
 
     let textWidth = 5;
     let plane = new THREE.PlaneBufferGeometry(textWidth, textWidth * 2);
     let geometry = new THREE.InstancedBufferGeometry();
     THREE.BufferGeometry.prototype.copy.call(geometry, plane);
 
-    createCanvasTexture();
+    createCanvasTexture();//実行タイミングここでいいのか？
     let material = new THREE.MeshBasicMaterial({
-        // color: 0xFF00FF,
         map: asciiTexture,
         side: THREE.DoubleSide,
         transparent: true,
+        color: 0x000000,
     });
 
     let commonChunk = `
-    attribute vec3 instancePos;
-    attribute float instanceUV;
+    attribute float asciiInstanceUV;
+    attribute float asciiInstanceAlpha;
+	varying float vAlpha;
     #include <common>
     `
     let uvChunk = `
     #ifdef USE_UV
     vUv = ( uvTransform * vec3( uv, 1 ) ).xy;
-    vUv.x = (instanceUV+vUv.x)/`+ charset.length + `.0;
+    vUv.x = (asciiInstanceUV+vUv.x)/`+ charset.length + `.0;
     #endif
     `
-    let beginVertexChunk = `
-    vec3 transformed = vec3( position );
-    transformed = instancePos+transformed;
+    let color_pars_vertex = `
+    #if defined( USE_COLOR ) || defined( USE_INSTANCING_COLOR )
+    varying vec3 vColor;
+    #endif
     `
+    let color_vertex =`
+    #if defined( USE_COLOR ) || defined( USE_INSTANCING_COLOR )
+	vColor = vec3( 1.0 );
+    #endif
+    #ifdef USE_COLOR
+	vColor.xyz *= color.xyz;
+    #endif
+    #ifdef USE_INSTANCING_COLOR
+	vColor.xyz *= instanceColor.xyz;
+    #endif
+
+    //vAlpha = 0.0;
+    vAlpha = asciiInstanceAlpha;
+
+    `
+    let color_pars_fragment =`
+    #ifdef USE_COLOR
+    varying vec3 vColor;
+    #endif
+    varying float vAlpha;
+    `
+    let color_fragment = `
+    #ifdef USE_COLOR
+    diffuseColor.rgb *= vColor;
+    #endif
+    diffuseColor.a *= vAlpha;
+    `
+
     material.onBeforeCompile = function (shader) {
+        console.log(shader.vertexShader)
+
         shader.vertexShader = shader.vertexShader
             .replace('#include <common>', commonChunk)
             .replace('#include <uv_vertex>', uvChunk)
-        //.replace('#include <begin_vertex>', beginVertexChunk)
+            .replace('#include <color_pars_vertex>',color_pars_vertex)
+            .replace('#include <color_vertex>',color_vertex)
+
+        shader.fragmentShader = shader.fragmentShader
+            .replace('#include <color_pars_fragment>',color_pars_fragment)
+            .replace('#include <color_fragment>',color_fragment)
     };
 
-    asciiPositionAttribute = new THREE.InstancedBufferAttribute(new Float32Array(instancePos), 3);
-    geometry.setAttribute('instancePos', asciiPositionAttribute);
-    geometry.setAttribute('instanceUV', new THREE.InstancedBufferAttribute(new Float32Array(instanceUV), 1));
+    geometry.setAttribute('asciiInstanceUV', new THREE.InstancedBufferAttribute(new Float32Array(asciiInstanceUV), 1));
+    geometry.setAttribute('asciiInstanceAlpha', new THREE.InstancedBufferAttribute(new Float32Array(asciiInstanceAlpha), 1));
 
-    console.log(instanceUV.length)
-
-    //asciiMesh = new THREE.Mesh(geometry,material,instanceUV.length);
-    asciiMesh = new THREE.InstancedMesh(geometry, material, instanceUV.length);
-
-    let dummy = new THREE.Object3D();
-    for (let i = 0; i < asciiPositionAttribute.count; i++) {
-        let x = asciiPositionAttribute.getX(i)
-        let y = asciiPositionAttribute.getY(i)
-        let z = asciiPositionAttribute.getZ(i)
-
-        dummy.position.set(x, y, z);
-        dummy.updateMatrix();
-        asciiMesh.setMatrixAt(i, dummy.matrix);
-    }
-    asciiMesh.instanceMatrix.needsUpdate = true;
-
-    scene.add(asciiMesh);
-
-}
-
-function myImageToUint8Array(image,context,resolve){
-    context.width = image.width;
-    context.height = image.height;
-    context.drawImage(image, 0, 0);
-    context.canvas.toBlob(blob => blob.arrayBuffer()
-      .then(buffer => resolve(new Uint8Array(buffer)))
-    )
-}
-
-function createCaptures(instanceUV, instancePos, captureInstanceURL) {
-
-    console.log("create Capture")
-    //https://blog.katsubemakito.net/html5/canvas-image
-
-    let canvas = document.createElement('canvas');
-    canvas.width  = 256;
-    canvas.height = 192;
-    let ctx = canvas.getContext('2d');
-
-    let resolve = (buffer) =>{
-        console.log("resolve",buffer)
-    }
-
-    let img = new Image();
-    img.onload = ()=>{
-        myImageToUint8Array(img,ctx,resolve)
-    }
-    img.src = captureInstanceURL[0];
-
-    //img.onLoad();
-    // Draw Image
-    console.log(ctx)
-    document.body.appendChild(canvas)
-
-    let textures = [];
-    let texture;
-    let loader = new THREE.TextureLoader();
-    for(let i = 0; i<captureInstanceURL.length; i++){
-        texture = loader.load(captureInstanceURL[i])
-        textures.push(texture);
-    }
-
-    let plane = new THREE.PlaneBufferGeometry(100, 150);
-    let geometry = new THREE.InstancedBufferGeometry();
-    THREE.BufferGeometry.prototype.copy.call(geometry, plane);
-
-    let material = new THREE.MeshBasicMaterial({
-        color: 0x00FF00,
-        side: THREE.DoubleSide,
-        //map:instanceTexture[0]
-    });
-
-    let commonChunk = `
-    attribute vec3 instancePos;
-    attribute float instanceUV;
-    #include <common>
-    `
-    let uvChunk = `
-    #ifdef USE_UV
-    vUv = ( uvTransform * vec3( uv, 1 ) ).xy;
-    vUv.x = (instanceUV+vUv.x)/`+ charset.length + `.0;
-    #endif
-    `
-    let beginVertexChunk = `
-    vec3 transformed = vec3( position );
-    transformed = instancePos+transformed;
-    `
-    // material.onBeforeCompile = function (shader) {
-    //     shader.vertexShader = shader.vertexShader
-    //         .replace('#include <common>', commonChunk)
-    //         .replace('#include <begin_vertex>', beginVertexChunk);
-    // };
-
-    capturePositionAttribute = new THREE.InstancedBufferAttribute(new Float32Array(instancePos), 3);
-    geometry.setAttribute('instancePos', capturePositionAttribute);
-    geometry.setAttribute('instanceUV', new THREE.InstancedBufferAttribute(new Float32Array(instanceUV), 1));
-
-    //captureMesh = new THREE.Mesh(geometry,material);
-    captureMesh = new THREE.InstancedMesh(geometry, material, instanceUV.length);
-    scene.add(captureMesh);
-
-}
-
-function update() {
+    asciiMesh = new THREE.InstancedMesh(geometry, material, asciiInstanceUV.length);
 
     let black = new THREE.Color(0, 0, 0);
     for (let i = 0; i < asciiMesh.count; i++) {
         asciiMesh.setColorAt(i, black);
     }
+    asciiMesh.instanceColor.needsUpdate = true;
+
+    scene.add(asciiMesh);
+
+}
+
+function createCaptureTexture(captureInstanceURL,callback){
+
+    let canvas = document.createElement('canvas');
+    canvas.width = 256 * captureInstanceURL.length;
+    canvas.height = 192;
+    let ctx = canvas.getContext('2d');
+
+    let i = 0;
+    let img = new Image();
+    img.onload = () => {
+        ctx.drawImage(img, 0, 0, 256, 192, i * 256, 0, 256, 192);
+        i++;
+        if (i < captureInstanceURL.length){
+            img.src = captureInstanceURL[i];
+        }else{
+            callback(canvas);
+        }
+    }
+    img.src = captureInstanceURL[0];
+}
+
+function createCaptures(asciiInstanceUV, canvas) {
+
+    let texture = new THREE.CanvasTexture(canvas);
+    let plane = new THREE.PlaneBufferGeometry(60, 60*3/4);
+    plane.translate(0,30,0)
+    let geometry = new THREE.InstancedBufferGeometry();
+    THREE.BufferGeometry.prototype.copy.call(geometry, plane);
+
+    let material = new THREE.MeshBasicMaterial({
+        side: THREE.DoubleSide,
+        map: texture,
+    });
+
+    let commonChunk = `
+    attribute float asciiInstanceUV;
+    #include <common>
+    `
+    let uvChunk = `
+    #ifdef USE_UV
+    vUv = ( uvTransform * vec3( uv, 1 ) ).xy;
+    vUv.x = (asciiInstanceUV+vUv.x)/`+ asciiInstanceUV.length + `.0;
+    #endif
+    `
+    let beginVertexChunk = `
+    vec3 transformed = vec3( position );
+    sampler2D t = textureArray[1];
+    //transformed = instancePos+transformed;
+    `
+    material.onBeforeCompile = function (shader) {
+        shader.vertexShader = shader.vertexShader
+            .replace('#include <common>', commonChunk)
+            .replace('#include <uv_vertex>', uvChunk)
+            //.replace('#include <begin_vertex>', beginVertexChunk);
+    };
+
+    geometry.setAttribute('asciiInstanceUV', new THREE.InstancedBufferAttribute(new Uint8Array(asciiInstanceUV), 1));
+    captureMesh = new THREE.InstancedMesh(geometry, material, asciiInstanceUV.length);
+    scene.add(captureMesh);
+
+}
+
+function createWhiteCube() {
+
+    let geometry = new THREE.BoxBufferGeometry(1, 1, 1);
+    let material = new THREE.MeshPhongMaterial({ color: 0xffffff, side: THREE.DoubleSide, });
+    box = new THREE.Mesh(geometry, material);
+    scene.add(box);
+
+}
+
+function createCanvasTexture() {
+
+    let oCanvas = document.createElement('canvas');
+    let oCtx = oCanvas.getContext('2d');
+    let fontsize = 256;
+    oCanvas.height = fontsize;
+    oCtx.font = "256px Roboto Mono";
+    oCanvas.width = oCtx.measureText(charset).width;
+    oCtx.font = "256px Roboto Mono";
+    oCtx.fillStyle = "rgb(255, 255, 255)";
+    oCtx.textBaseline = "top";
+    oCtx.textAlign = "left";
+    oCtx.fillText(charset, 0, 0, oCanvas.width);
+    asciiTexture = new THREE.CanvasTexture(oCanvas);
+    asciiTexture.minFilter = THREE.LinearMipmapNearestFilter;
 
 }
 
@@ -428,8 +397,6 @@ function resizeAsciis() {
     let total = displayURLs.length;
     let wallPerNum = Math.ceil(total / 3);
     let wallWidth = window.innerWidth;
-    //console.log(total,wallPerNum)
-    //console.log(window.innerWidth,window.innerHeight)
     let tmpW = wallWidth * 3 / 2;
     let tmpH = window.innerHeight;
     let area = tmpW * tmpH / wallPerNum;
@@ -444,12 +411,6 @@ function resizeAsciis() {
 
     let padding = (wallWidth - edgeW * (perW - 1)) / 2;
 
-    // let artsize = Math.floor(Math.sqrt(area));
-    // let widthNum = Math.floor(w/artsize)
-    // //let artsizew = Math.floor(artsizeh*4/3);
-    // let width =  window.innerWidth/widthNum;
-
-    let list;
     let halfW = window.innerWidth / 2;
     let halfH = window.innerHeight / 2;
     let wall, index, y;
@@ -499,31 +460,4 @@ function resizeAsciis() {
 
     captureMesh.instanceMatrix.needsUpdate = true;
     asciiMesh.instanceMatrix.needsUpdate = true;
-}
-
-function createWhiteCube() {
-
-    let geometry = new THREE.BoxBufferGeometry(1, 1, 1);
-    let material = new THREE.MeshPhongMaterial({ color: 0xffffff, side: THREE.DoubleSide, });
-    box = new THREE.Mesh(geometry, material);
-    //scene.add(box);
-
-}
-
-function createCanvasTexture() {
-
-    let oCanvas = document.createElement('canvas');
-    let oCtx = oCanvas.getContext('2d');
-    let fontsize = 256;
-    oCanvas.height = fontsize;
-    oCtx.font = "256px Roboto Mono";
-    oCanvas.width = oCtx.measureText(charset).width;
-    oCtx.font = "256px Roboto Mono";
-    oCtx.fillStyle = "rgb(255, 255, 255)";
-    oCtx.textBaseline = "top";
-    oCtx.textAlign = "left";
-    oCtx.fillText(charset, 0, 0, oCanvas.width);
-    //document.body.appendChild(oCanvas)
-    asciiTexture = new THREE.CanvasTexture(oCanvas);
-
 }

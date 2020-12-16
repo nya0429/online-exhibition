@@ -5,6 +5,7 @@ let video2ascii = function (_charset, _asciiMap, options) {
     let count = 0;
 
     const video = document.getElementById("video");
+    let texture;
 
     const oAscii = document.createElement('div');
     oAscii.style.cursor = 'default';
@@ -47,20 +48,6 @@ let video2ascii = function (_charset, _asciiMap, options) {
         },
     };
 
-
-    //debug
-    //oCanvas.style.position = "absolute"
-    //oCanvas.style.left = "0px"
-    //oCanvas.style.top = "0px"
-    //oCanvas.style.zIndex = "3"
-    //document.body.appendChild( oCanvas );
-
-    //renderer.domElement.style.position = "absolute"
-    //renderer.domElement.style.left = "200px"
-    //renderer.domElement.style.top = "0px"
-    //renderer.domElement.style.zIndex = "3"
-    //document.body.appendChild( renderer.domElement );
-
     createScene();
 
     this.setSize = function (w, h) {
@@ -80,16 +67,12 @@ let video2ascii = function (_charset, _asciiMap, options) {
             });
         }
 
-        //let aspect = String(Math.round(width/height*100)/100);
-        //console.log("aspect",aspect);
         constraints = {
             audio: false,
             video: {
                 facingMode: "user",
                 width: width,
                 height: height,
-                // aspectRatio: {exact: width/height},
-                //aspectRatio: aspect,
             },
         };
 
@@ -98,6 +81,10 @@ let video2ascii = function (_charset, _asciiMap, options) {
     function gotStream(stream) {
         window.stream = stream; // make stream available to console
         video.srcObject = stream;
+        // video.onload = function(){
+        //     video.play();
+        // }
+        video.play();
     }
     function handleError(error) {
         console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
@@ -105,7 +92,7 @@ let video2ascii = function (_charset, _asciiMap, options) {
 
     function createScene() {
 
-        let texture = new THREE.VideoTexture(video);
+        texture = new THREE.VideoTexture(video);
         const vs = `
         precision mediump float;
 
@@ -160,16 +147,12 @@ let video2ascii = function (_charset, _asciiMap, options) {
     let fFontSize = (2 / fResolution) * iScale;
     initAsciiSize();
 
-    let aNodeList = [];
-
     function initAsciiSize() {
 
         oAscii.cellSpacing = 0;
         oAscii.cellPadding = 0;
 
         let oStyle = oAscii.style;
-        //oStyle.width = Math.round(iWidth / fResolution * iScale) + "px";
-        //oStyle.height = Math.round(iHeight / fResolution * iScale) + "px";
         oStyle.whiteSpace = "pre";
         oStyle.margin = "0px";
         oStyle.padding = "0px";
@@ -210,17 +193,27 @@ let video2ascii = function (_charset, _asciiMap, options) {
 
     }
 
-    let tmpMap = [];
-
     this.asciifyImage = (asciiMesh) => {
 
         if(asciiMesh == null){
             return;
         }
 
+        count++
+        if(count%5 != 0){
+            return
+        }
+
         renderer.render(scene, camera);
+
         webGLCtx.readPixels(0, 0, webGLCtx.drawingBufferWidth, webGLCtx.drawingBufferHeight, webGLCtx.RGBA, webGLCtx.UNSIGNED_BYTE, oImgData);
-        tmpMap = JSON.parse(JSON.stringify(asciiMap));
+        let tmpMap = JSON.parse(JSON.stringify(asciiMap));
+        
+        let black = new THREE.Color(0, 0, 0);
+        for (let i = 0; i < asciiMesh.count; i++) {
+            asciiMesh.setColorAt(i, black);
+            asciiMesh.geometry.attributes.asciiInstanceAlpha.setX(i,1);
+        }
 
         let i,iOffset,iCharIdx,strThisChar;
         let tmplist,find,rand,color,span,atag;
@@ -256,14 +249,14 @@ let video2ascii = function (_charset, _asciiMap, options) {
                 rand = Math.floor(Math.random() * tmplist.length);
                 color = "rgb("+oImgData[iOffset]+","+oImgData[iOffset+1]+","+oImgData[iOffset+2]+")";
                 
-                //console.log(tmplist[rand]);
 
                 let url = tmplist[rand].url
-                strThisChar = '<a href=' + url + ' target="_blank" style=color:'+color+'>' + strThisChar + '</a>'
+                strThisChar = '<a href=' + url + ' target="_blank" onClick="window.open().location.href="http://webdev.jp.net/"" style=color:'+color+'>' + strThisChar + '</a>'
                 strChars += strThisChar;
 
                 threeColor.setRGB(oImgData[iOffset]/255,oImgData[iOffset+1]/255,oImgData[iOffset+2]/255)
                 asciiMesh.setColorAt(tmplist[rand].id,threeColor)
+                asciiMesh.geometry.attributes.asciiInstanceAlpha.setX(tmplist[rand].id,0.1);
 
                 if (find) {
                     tmplist.splice(rand,1);
@@ -272,6 +265,9 @@ let video2ascii = function (_charset, _asciiMap, options) {
         }
 
         oAscii.innerHTML = strChars;
+        asciiMesh.instanceColor.needsUpdate = true;
+        asciiMesh.geometry.attributes.asciiInstanceAlpha.needsUpdate = true;
+
     }
     start();
 }
