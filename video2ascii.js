@@ -84,7 +84,7 @@ let video2ascii = function (_charset, _asciiMap, options) {
         // video.onload = function(){
         //     video.play();
         // }
-        video.play();
+        //video.play();
     }
     function handleError(error) {
         console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
