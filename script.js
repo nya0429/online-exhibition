@@ -203,11 +203,15 @@ function loadURLs(csvstr) {
 
     createWhiteCube();
     createAsciis(asciiInstanceUV,asciiInstanceAlpha);
+    createCaptures(captureInstanceUV);
+    onWindowResize();
+    animate();    
+
     createCaptureTexture(captureInstanceURL,(canvas)=>{
         //document.body.appendChild(canvas)
-        createCaptures(captureInstanceUV,canvas);
-        onWindowResize();
-        animate();    
+        let texture = new THREE.CanvasTexture(canvas);
+        captureMesh.material.map = texture;
+        captureMesh.material.needsUpdate = true;
 
     })
 
@@ -323,9 +327,8 @@ function createCaptureTexture(captureInstanceURL,callback){
     img.src = captureInstanceURL[0];
 }
 
-function createCaptures(asciiInstanceUV, canvas) {
+function createCaptures(asciiInstanceUV) {
 
-    let texture = new THREE.CanvasTexture(canvas);
     let plane = new THREE.PlaneBufferGeometry(60, 60*3/4);
     plane.translate(0,30,0)
     let geometry = new THREE.InstancedBufferGeometry();
@@ -333,7 +336,7 @@ function createCaptures(asciiInstanceUV, canvas) {
 
     let material = new THREE.MeshBasicMaterial({
         side: THREE.DoubleSide,
-        map: texture,
+        //map: texture,
     });
 
     let commonChunk = `
