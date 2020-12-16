@@ -86,7 +86,7 @@ function init() {
     CSSrenderer.setSize(window.innerWidth, window.innerHeight);
     container.appendChild(CSSrenderer.domElement);
 
-    effect = new video2ascii(charset, asciiMap, { color: true, invert: true ,resolution:0.15});
+    effect = new video2ascii(charset, asciiMap, { color: true, invert: true ,resolution:0.12});
     effect.setSize(window.innerWidth / 2, window.innerHeight / 2);
 
     effectCSS = new CSS3DObject(effect.domElement);
