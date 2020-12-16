@@ -407,9 +407,9 @@ function resizeAsciis() {
     let perH = Math.floor(tmpH / edgeH);
     let edgeW = Math.floor(edgeH * 2 / 3);
 
-    console.log(perW, perH, perW * perH);
-    console.log(area, edgeH);
-    console.log(edgeW);
+    //console.log(perW, perH, perW * perH);
+    //console.log(area, edgeH);
+    //console.log(edgeW);
 
     let padding = (wallWidth - edgeW * (perW - 1)) / 2;
 

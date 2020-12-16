@@ -202,7 +202,7 @@ let video2ascii = function (_charset, _asciiMap, options) {
         }
 
         count++
-        if(count%5 != 0){
+        if(count%10 != 0){
             return
         }
 
