@@ -1,5 +1,4 @@
 import * as THREE from "https://unpkg.com/three@0.122.0/build/three.module.js";
-//import * as THREE from "./node_modules/three/build/three.module.js";
 import { TrackballControls } from "https://unpkg.com/three@0.122.0/examples/jsm/controls/TrackballControls.js";
 import { OrbitControls } from "https://unpkg.com/three@0.122.0/examples/jsm/controls/OrbitControls.js";
 import { CSS3DRenderer, CSS3DObject } from 'https://unpkg.com/three@0.122.0/examples/jsm/renderers/CSS3DRenderer.js';
