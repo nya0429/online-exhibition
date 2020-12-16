@@ -78,14 +78,14 @@ let video2ascii = function (_charset, _asciiMap, options) {
 
         navigator.mediaDevices.getUserMedia(constraints).then(gotStream).catch(handleError);
     }
-    
+
     function gotStream(stream) {
         window.stream = stream; // make stream available to console
         video.srcObject = stream;
         // video.onload = function(){
         //     video.play();
         // }
-        //video.play();
+        video.play();
     }
 
     function handleError(error) {
