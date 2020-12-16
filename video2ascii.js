@@ -78,6 +78,7 @@ let video2ascii = function (_charset, _asciiMap, options) {
 
         navigator.mediaDevices.getUserMedia(constraints).then(gotStream).catch(handleError);
     }
+    
     function gotStream(stream) {
         window.stream = stream; // make stream available to console
         video.srcObject = stream;
@@ -86,6 +87,7 @@ let video2ascii = function (_charset, _asciiMap, options) {
         // }
         //video.play();
     }
+
     function handleError(error) {
         console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
     }
