@@ -274,8 +274,7 @@ function createAsciis(asciiInstanceUV,asciiInstanceAlpha) {
     `
 
     material.onBeforeCompile = function (shader) {
-        console.log(shader.vertexShader)
-
+        
         shader.vertexShader = shader.vertexShader
             .replace('#include <common>', commonChunk)
             .replace('#include <uv_vertex>', uvChunk)
@@ -312,6 +311,7 @@ function createCaptureTexture(captureInstanceURL,callback){
     let i = 0;
     let img = new Image();
     img.onload = () => {
+        console.log("img loaded "+i+" / "+captureInstanceURL.length)
         ctx.drawImage(img, 0, 0, 256, 192, i * 256, 0, 256, 192);
         i++;
         if (i < captureInstanceURL.length){
@@ -427,7 +427,6 @@ function resizeAsciis() {
 
     let wallTranslateMtx = new THREE.Matrix4();
     let wallRotateMtx = new THREE.Matrix4();
-
 
     let counter = 0;
 
