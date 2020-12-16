@@ -42,7 +42,7 @@ function setDeviceInfo(){
 
 function init() {
 
-    setDeviceInfo();
+    //setDeviceInfo();
     loadCSV();
 
     stats = new Stats();
