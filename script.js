@@ -86,6 +86,8 @@ function init() {
         //isMobile = Object.keys(sceneControls.deviceOrientation).length;
     }
 
+    document.getElementById("title").innerText = isMobile
+
     if(!isMobile) {
 
         sceneControlCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
