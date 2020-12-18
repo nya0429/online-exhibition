@@ -47,7 +47,7 @@ let lightHelper,shadowCameraHelper,spotLight;
 
 
 let deg;
-init()
+window.onload = init()
 
 function isSmartPhone() {
     if (navigator.userAgent.match(/iPhone|Android.+Mobile/)) {
