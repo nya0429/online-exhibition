@@ -62,6 +62,7 @@ function init() {
     isMobile = isSmartPhone();
     if(isMobile){
         sceneControls = new DeviceOrientationControls(camera);
+        console.log(sceneControls)
         isMobile = Object.keys(sceneControls.deviceOrientation).length;
     }
 
