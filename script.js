@@ -59,6 +59,9 @@ function isSmartPhone() {
 
 function init() {
 
+    deg = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
+    camera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 1, 10000);
+
     isMobile = isSmartPhone();
     if(isMobile){
         sceneControls = new DeviceOrientationControls(camera);
@@ -66,9 +69,6 @@ function init() {
         isMobile = Object.keys(sceneControls.deviceOrientation).length;
     }
 
-
-    deg = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
-    camera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 1, 10000);
     //camera.position.set(0,0,500);
 
     renderer = new THREE.WebGLRenderer({
