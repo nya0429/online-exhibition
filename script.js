@@ -49,7 +49,17 @@ let lightHelper,shadowCameraHelper,spotLight;
 let deg;
 init()
 
+function isSmartPhone() {
+    if (navigator.userAgent.match(/iPhone|Android.+Mobile/)) {
+      return true;
+    } else {
+      return false;
+    }
+}
+
 function init() {
+
+    isMobile = isSmartPhone();
 
     deg = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
     camera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 1, 10000);
@@ -69,17 +79,13 @@ function init() {
     renderer.setPixelRatio(window.devicePixelRatio);
     document.body.appendChild(renderer.domElement);
 
-    console.log(typeof (DeviceOrientationEvent))
-    if (typeof(DeviceOrientationEvent) === undefined) {
+    scene = new THREE.Scene();
 
-    } else {
-        if (DeviceOrientationEvent in window) {
-
-            isMobile = true;
-            sceneControls = new DeviceOrientationControls(camera);
-
-        } 
+    if(isMobile){
+        sceneControls = new DeviceOrientationControls(camera);
+        isMobile = Object.keys(sceneControls.deviceOrientation).length;
     }
+
     if(!isMobile) {
 
         sceneControlCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
@@ -112,7 +118,6 @@ function init() {
     stats = new Stats();
     document.body.appendChild(stats.dom);
 
-    scene = new THREE.Scene();
 
     // lights
     let mainLight = new THREE.PointLight(0xcccccc, 2, window.innerWidth,2);
@@ -210,9 +215,6 @@ function onMouseDown() {
     }
 
 }
-
-const Quaternion = new THREE.Quaternion();
-const Mtx = new THREE.Matrix4();
 
 function animate() {
 
