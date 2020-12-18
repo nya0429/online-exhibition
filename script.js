@@ -60,6 +60,11 @@ function isSmartPhone() {
 function init() {
 
     isMobile = isSmartPhone();
+    if(isMobile){
+        sceneControls = new DeviceOrientationControls(camera);
+        isMobile = Object.keys(sceneControls.deviceOrientation).length;
+    }
+
 
     deg = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
     camera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 1, 10000);
@@ -80,11 +85,6 @@ function init() {
     document.body.appendChild(renderer.domElement);
 
     scene = new THREE.Scene();
-
-    if(isMobile){
-        sceneControls = new DeviceOrientationControls(camera);
-        //isMobile = Object.keys(sceneControls.deviceOrientation).length;
-    }
 
     document.getElementById("title").innerText = isMobile
 
