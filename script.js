@@ -83,7 +83,7 @@ function init() {
 
     if(isMobile){
         sceneControls = new DeviceOrientationControls(camera);
-        isMobile = Object.keys(sceneControls.deviceOrientation).length;
+        //isMobile = Object.keys(sceneControls.deviceOrientation).length;
     }
 
     if(!isMobile) {
