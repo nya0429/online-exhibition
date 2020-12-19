@@ -52,6 +52,8 @@ const getOrientationDevice = () => {
     cameraControls = new DeviceOrientationControls(camera);
     isGetDeviceOrientation = cameraControls.deviceOrientation.returnValue;
     isGetDeviceOrientation = !isGetDeviceOrientation ? false : true;
+    console.log(cameraControls)
+    console.log(cameraControls.deviceOrientation)
     console.log(isGetDeviceOrientation)
     if(!isGetDeviceOrientation){
         initControls();
