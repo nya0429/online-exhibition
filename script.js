@@ -48,7 +48,26 @@ let windowHalfHeight = windowHeight/2;
 let lightHelper,shadowCameraHelper,spotLight;
 let deg;
 
-window.onload = init()
+const title = document.getElementById('title');
+
+title.addEventListener('touchstart', function(){
+    console.log("touch")
+    if(isMobile&&!isGetDeviceOrientation){
+        cameraControls = new DeviceOrientationControls(camera);
+        //cameraControls.connect();
+        console.log(cameraControls)
+        isMobile = Object.keys(cameraControls.deviceOrientation).length;
+        isGetDeviceOrientation = isMobile;
+        if(!isMobile && !sceneControls){
+            onWindowResize();
+            initControls();
+        }
+    }
+},false);
+
+init()
+
+
 
 function isSmartPhone() {
     if (navigator.userAgent.match(/iPhone|Android.+Mobile/)) {
@@ -130,20 +149,7 @@ function init() {
 
     window.addEventListener('resize', onWindowResize, false);
     document.addEventListener('mousemove', onMouseMove, false);
-    document.getElementById('title').addEventListener('touchstart', function(){
-        console.log("touch")
-        if(isMobile&&!isGetDeviceOrientation){
-            cameraControls = new DeviceOrientationControls(camera);
-            //cameraControls.connect();
-            console.log(cameraControls)
-            isMobile = Object.keys(cameraControls.deviceOrientation).length;
-            isGetDeviceOrientation = isMobile;
-            if(!isMobile && !sceneControls){
-                onWindowResize();
-                initControls();
-            }
-        }
-    },false);
+
 
     //document.addEventListener('click', onMouseDown, false);
 
