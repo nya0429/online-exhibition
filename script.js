@@ -31,6 +31,8 @@ let textMesh;
 let captureMesh;
 
 let isMobile = false;
+let isGetDeviceOrientation = false;
+
 const mobileWidth = 1920;
 const mobileHeight = 1080;
 
@@ -44,10 +46,7 @@ let windowHalfWidth = windowWidth/2;
 let windowHalfHeight = windowHeight/2;
 
 let lightHelper,shadowCameraHelper,spotLight;
-
-
 let deg;
-let initLoad = true;
 
 window.onload = init()
 
@@ -59,56 +58,22 @@ function isSmartPhone() {
     }
 }
 
-function startVideo() {
+function getDeviceOrientation(){
 
-    let constraints = {
-        audio: false,
-        video: {
-            facingMode: "user",
-            width: Math.round(windowHalfWidth),
-            height: Math.round(windowHalfHeight),
-        },
-    };
-
-    if (window.stream) {
-        window.stream.getTracks().forEach(track => {
-            track.stop();
-
-        });
-    }
-
-    navigator.mediaDevices.getUserMedia(constraints).then(gotStream).catch(handleError);
-
-}
-
-function gotStream(stream) {
+    console.log("get Device Orientation start")
 
     if(isMobile){
         cameraControls = new DeviceOrientationControls(camera);
         isMobile = Object.keys(sceneControls.deviceOrientation).length;
-        }
-    console.log(isMobile,cameraControls)
-    
-    window.stream = stream; // make stream available to console
-    video.srcObject = stream;
-    console.log(video.onload)
-    video.play().then().catch();
-
-}
-
-function handleError(error) {
-    console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
+    }
 }
 
 function init() {
-
-
 
     deg = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
     camera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 1, 10000);
 
     isMobile = isSmartPhone();
-    //camera.position.set(0,0,500);
 
     renderer = new THREE.WebGLRenderer({
         depth: false,
@@ -123,6 +88,8 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     document.body.appendChild(renderer.domElement);
+
+    document.addEventListener('touchstart',getDeviceOrientation())
 
     scene = new THREE.Scene();
 
@@ -657,3 +624,30 @@ function resizeAsciis(w,h) {
 
 }
 
+function startVideo() {
+
+    let constraints = {
+        audio: false,
+        video: {
+            facingMode: "user",
+            width: Math.round(windowHalfWidth),
+            height: Math.round(windowHalfHeight),
+        },
+    };
+    navigator.mediaDevices.getUserMedia(constraints).then(gotStream).catch(handleError);
+}
+
+function gotStream(stream) {
+
+
+    console.log(isMobile,cameraControls)
+    
+    window.stream = stream; // make stream available to console
+    video.srcObject = stream;
+    console.log(video.onload)
+    video.play().then().catch();
+
+}
+function handleError(error) {
+    console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
+}
