@@ -6,8 +6,8 @@ import { OrbitControls } from "https://unpkg.com/three@0.122.0/examples/jsm/cont
 import { video2ascii } from "./video2ascii.js";
 import Stats from "https://unpkg.com/three@0.122.0/examples/jsm/libs/stats.module.js";
 
-let camera, sceneControls, cameraControls, cube;
-let orbitCamera, sceneControlCamera;
+let camera, rotateControls, zoomControls, cube;
+let zoomCamera, rotateCamera;
 let renderer, scene;
 let effect;
 
@@ -57,20 +57,20 @@ const title = document.getElementById('title');
 
 const getOrientationDevice = function(){
     console.log("me")
-    cameraControls = new DeviceOrientationControls(camera);
-    cameraControls.connect()
+    rotateControls = new DeviceOrientationControls(camera);
+    rotateControls.connect()
     .then((value)=>{
-        console.log('resolve',cameraControls.enabled)
-        console.log(cameraControls.deviceOrientation)
-        console.log(cameraControls)
+        console.log('resolve',rotateControls.enabled)
+        console.log(rotateControls.deviceOrientation)
+        console.log(rotateControls)
         console.log(value)
         //console.log(value.deviceOrientation)
-        isEnableDeviceOrientation = Boolean(cameraControls.deviceOrientation.returnValue);
+        isEnableDeviceOrientation = Boolean(rotateControls.deviceOrientation.returnValue);
         isEnableDeviceOrientation = true;
         initMobile();
 
     },(value)=>{
-        console.log('reject',cameraControls)
+        console.log('reject',rotateControls)
         //initControls();
     })
     title.innerText = "It's all here."
@@ -98,14 +98,19 @@ function init() {
     document.body.appendChild(renderer.domElement);
 
     deg = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
-    camera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 1, 10000);
+    camera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
+    rotateCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
+    zoomCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
+
+
     scene = new THREE.Scene();
 
     if (isMobile && isSupportDeviceOrientation) {
         renderer.domElement.addEventListener('click', getOrientationDevice, false);
         title.innerText = 'touch to allow'
     } else {
-        initControls();
+        initZoomControls();
+        initRotateControls()
     }
 
     loadData();
@@ -159,29 +164,29 @@ function addLight() {
 
 }
 
-function initControls() {
+function initRotateControls() {
 
-    sceneControlCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
-    sceneControlCamera.position.set(0.0, 0, 0.01);
+    rotateCamera.position.set(0.0, 0, 0.01);
 
-    sceneControls = new OrbitControls(sceneControlCamera, renderer.domElement);
-    sceneControls.enablePan = false;
-    sceneControls.enableZoom = false;
-    sceneControls.enableDamping = true;
-    sceneControls.dampingFactor = 0.05;
-    sceneControls.minPolarAngle = Math.PI / 4;
-    sceneControls.maxPolarAngle = Math.PI - sceneControls.minPolarAngle;
+    rotateControls = new OrbitControls(rotateCamera, renderer.domElement);
+    rotateControls.enablePan = false;
+    rotateControls.enableZoom = false;
+    rotateControls.enableDamping = true;
+    rotateControls.dampingFactor = 0.05;
+    rotateControls.minPolarAngle = Math.PI / 4;
+    rotateControls.maxPolarAngle = Math.PI - rotateControls.minPolarAngle;
 
-    orbitCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
-    orbitCamera.position.set(0, 0, windowHalfWidth);
+}
 
-    //cameraControls = new OrbitControls(camera,renderer.domElement);
-    cameraControls = new OrbitControls(orbitCamera, renderer.domElement);
-    cameraControls.enablePan = false;
-    cameraControls.enableRotate = false;
-    cameraControls.maxDistance = windowHalfWidth;
-    cameraControls.enableDamping = true;
-    cameraControls.dampingFactor = 0.1;
+function initZoomControls(){
+
+    zoomCamera.position.set(0, 0, windowHalfWidth);
+    zoomControls = new OrbitControls(zoomCamera, renderer.domElement);
+    zoomControls.enablePan = false;
+    zoomControls.enableRotate = false;
+    zoomControls.maxDistance = windowHalfWidth;
+    zoomControls.enableDamping = true;
+    zoomControls.dampingFactor = 0.1;
 
 }
 
@@ -191,8 +196,8 @@ function initMobile() {
     scene.add(asciiMesh)
     cube.scale.set(mobileSize*2, mobileSize*2, mobileSize*2);
     resizeAsciis(mobileSize*2, mobileSize*2);
+    initZoomControls();
     animate();
-
     console.log("initMobile end")
 
 }
@@ -275,12 +280,18 @@ function animate() {
         renderer.domElement.style.cursor = "default"
     }
 
-    cameraControls.update();
-    if (!isMobile) {
-        sceneControls.update();
-        orbitCamera.getWorldPosition(camera.position)
+    rotateControls.update();
+
+
+    if (isEnableDeviceOrientation) {
+
+        //rotateCamera.getWorldQuaternion(scene.quaternion)
+
+    }else{
+        zoomControls.update();
+        zoomCamera.getWorldPosition(camera.position)
         camera.position.z -= windowHalfWidth
-        sceneControlCamera.getWorldQuaternion(scene.quaternion)
+        rotateCamera.getWorldQuaternion(scene.quaternion)
         scene.quaternion.inverse();
     }
 
