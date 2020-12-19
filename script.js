@@ -6,7 +6,7 @@ import { video2ascii } from "./video2ascii.js";
 import Stats from "https://unpkg.com/three@0.122.0/examples/jsm/libs/stats.module.js";
 
 let camera, sceneControls, cameraControls, cube;
-let orbitCamera,sceneControlCamera;
+let orbitCamera, sceneControlCamera;
 let renderer, scene;
 let effect;
 
@@ -27,6 +27,7 @@ let textMesh;
 let captureMesh;
 
 let isMobile = false;
+let isReturn = false;
 let isGetDeviceOrientation = false;
 
 const mobileWidth = 1920;
@@ -38,38 +39,43 @@ const mouse = new THREE.Vector2(1, 1);
 
 let windowWidth = window.innerWidth;
 let windowHeight = window.innerHeight;
-let windowHalfWidth = windowWidth/2;
-let windowHalfHeight = windowHeight/2;
+let windowHalfWidth = windowWidth / 2;
+let windowHalfHeight = windowHeight / 2;
 
-let lightHelper,shadowCameraHelper,spotLight;
+let lightHelper, shadowCameraHelper, spotLight;
 let deg;
 
 const title = document.getElementById('title');
 
-const getOrientationDevice = () =>{
-    console.log("click")
-    if(isMobile&&!isGetDeviceOrientation){
-        cameraControls = new DeviceOrientationControls(camera);
-        isGetDeviceOrientation = cameraControls.deviceOrientation.returnValue;
+const getOrientationDevice = () => {
+
+    cameraControls = new DeviceOrientationControls(camera);
+    isGetDeviceOrientation = cameraControls.deviceOrientation.returnValue;
+    isGetDeviceOrientation = !isGetDeviceOrientation ? false : true;
+    console.log(isGetDeviceOrientation)
+    if(!isGetDeviceOrientation){
+        initControls();
     }
+
+    title.innerText = "It's all here."
+    animate();
+    renderer.domElement.removeEventListener('click', getOrientationDevice);
+
 }
 
 init()
 
 function isSmartPhone() {
     if (navigator.userAgent.match(/iPhone|Android.+Mobile/)) {
-      return true;
+        return true;
     } else {
-      return false;
+        return false;
     }
 }
 
 function init() {
 
     isMobile = isSmartPhone();
-    
-    deg = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
-    camera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 1, 10000);
 
     renderer = new THREE.WebGLRenderer({
         depth: false,
@@ -84,35 +90,45 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     document.body.appendChild(renderer.domElement);
-    renderer.domElement.addEventListener('click',getOrientationDevice,false);
-    
 
-
+    deg = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
+    camera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 1, 10000);
     scene = new THREE.Scene();
 
-    document.getElementById("title").innerText = isMobile
-
-    initControls();
-
-    console.log("isMovile", isMobile)
-
+    if (isMobile) {
+        renderer.domElement.addEventListener('click', getOrientationDevice, false);
+        title.innerText = 'touch to allow'
+    }else{
+        initControls();
+    }
     loadCSV();
 
     stats = new Stats();
     document.body.appendChild(stats.dom);
 
+    addLight();
+
+    window.addEventListener('resize', onWindowResize, false);
+    document.addEventListener('mousemove', onMouseMove, false);
+    //document.addEventListener('click', onMouseDown, false);
+
+}
+
+function addLight() {
 
     // lights
-    let mainLight = new THREE.PointLight(0xcccccc, 2, window.innerWidth,2);
+    let mainLight = new THREE.PointLight(0xcccccc, 2, window.innerWidth, 2);
     scene.add(mainLight);
     //mainLight.position.x = windowHalfWidth*0.9;
     //mainLight.position.y = 60;
-    const ambient = new THREE.AmbientLight( 0xffffff, 0.1 );
-	scene.add( ambient );
+    const ambient = new THREE.AmbientLight(0xffffff, 0.1);
+    scene.add(ambient);
 
+    let a = new THREE.AxesHelper(100);
+    scene.add(a)
 
-    spotLight = new THREE.SpotLight( 0xffffff, 1 );
-    spotLight.position.set( window.innerWidth/2, 40, 35 );
+    spotLight = new THREE.SpotLight(0xffffff, 1);
+    spotLight.position.set(window.innerWidth / 2, 40, 35);
     spotLight.angle = Math.PI / 4;
     spotLight.penumbra = 0.1;
     spotLight.decay = 2;
@@ -126,60 +142,48 @@ function init() {
     spotLight.shadow.focus = 1;
     //scene.add( spotLight );
 
-    lightHelper = new THREE.SpotLightHelper( spotLight );
+    lightHelper = new THREE.SpotLightHelper(spotLight);
     //scene.add( lightHelper );
 
-    shadowCameraHelper = new THREE.CameraHelper( spotLight.shadow.camera );
+    shadowCameraHelper = new THREE.CameraHelper(spotLight.shadow.camera);
     //scene.add( shadowCameraHelper );
 
-    let a = new THREE.AxesHelper(100);
-    scene.add(a)
-
-    window.addEventListener('resize', onWindowResize, false);
-    document.addEventListener('mousemove', onMouseMove, false);
-
-
-    //document.addEventListener('click', onMouseDown, false);
-
-}
-
-function initControls(){
-
-    if(!isMobile) {
-
-        sceneControlCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
-        sceneControlCamera.position.set(0.0, 0, 0.01);
-
-        sceneControls = new OrbitControls(sceneControlCamera,renderer.domElement);
-        sceneControls.enablePan = false;
-        sceneControls.enableZoom = false;
-        sceneControls.enableDamping = true;
-        sceneControls.dampingFactor = 0.05;
-        sceneControls.minPolarAngle = Math.PI / 4;
-        sceneControls.maxPolarAngle = Math.PI - sceneControls.minPolarAngle;
-
-        orbitCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
-        orbitCamera.position.set(0, 0, windowHalfWidth);
-
-        //cameraControls = new OrbitControls(camera,renderer.domElement);
-        cameraControls = new OrbitControls(orbitCamera,renderer.domElement);
-        cameraControls.enablePan = false;
-        cameraControls.enableRotate = false;
-        cameraControls.maxDistance = windowHalfWidth;
-        cameraControls.enableDamping = true;
-        cameraControls.dampingFactor = 0.1;
-
-    }
 
 
 }
 
-function initMobile(){
+function initControls() {
 
-    asciiMesh = effect.setSize(mobileWidth/2, mobileHeight/2);
+    sceneControlCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
+    sceneControlCamera.position.set(0.0, 0, 0.01);
+
+    sceneControls = new OrbitControls(sceneControlCamera, renderer.domElement);
+    sceneControls.enablePan = false;
+    sceneControls.enableZoom = false;
+    sceneControls.enableDamping = true;
+    sceneControls.dampingFactor = 0.05;
+    sceneControls.minPolarAngle = Math.PI / 4;
+    sceneControls.maxPolarAngle = Math.PI - sceneControls.minPolarAngle;
+
+    orbitCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
+    orbitCamera.position.set(0, 0, windowHalfWidth);
+
+    //cameraControls = new OrbitControls(camera,renderer.domElement);
+    cameraControls = new OrbitControls(orbitCamera, renderer.domElement);
+    cameraControls.enablePan = false;
+    cameraControls.enableRotate = false;
+    cameraControls.maxDistance = windowHalfWidth;
+    cameraControls.enableDamping = true;
+    cameraControls.dampingFactor = 0.1;
+
+}
+
+function initMobile() {
+
+    asciiMesh = effect.setSize(mobileWidth / 2, mobileHeight / 2);
     scene.add(asciiMesh)
     cube.scale.set(mobileWidth, mobileHeight, mobileWidth);
-    resizeAsciis(mobileWidth,mobileHeight);
+    resizeAsciis(mobileWidth, mobileHeight);
 
 }
 
@@ -187,21 +191,21 @@ function onWindowResize() {
 
     windowWidth = window.innerWidth;
     windowHeight = window.innerHeight;
-    windowHalfWidth = windowWidth/2;
-    windowHalfHeight = windowHeight/2;
+    windowHalfWidth = windowWidth / 2;
+    windowHalfHeight = windowHeight / 2;
 
     camera.fov = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 
     scene.remove(asciiMesh)
-    
-    if(!isMobile){
+
+    if (!isGetDeviceOrientation) {
 
         asciiMesh = effect.setSize(windowHalfWidth, windowHalfHeight);
         scene.add(asciiMesh)
         cube.scale.set(window.innerWidth, window.innerHeight, window.innerWidth);
-        resizeAsciis(window.innerWidth,window.innerHeight);
+        resizeAsciis(window.innerWidth, window.innerHeight);
 
     }
 
@@ -227,7 +231,7 @@ function onMouseDown() {
         const charID = asciiMesh.geometry.attributes.asciiInstanceUV.getX(instanceId);
         console.log(charID)
         window.open(linkURLs[urlID], '_blank');
-        console.log(charset[charID],linkURLs[urlID])
+        console.log(charset[charID], linkURLs[urlID])
     }
 
 }
@@ -339,9 +343,9 @@ function loadURLs(csvstr) {
 
     let textTextureID = [];
     let displayURL;
-    for(let i = 0; i < displayURLs.length; i++){
+    for (let i = 0; i < displayURLs.length; i++) {
         displayURL = displayURLs[i];
-        for(let j = 0; j <displayURL.length;j++){
+        for (let j = 0; j < displayURL.length; j++) {
             textTextureID.push(charset.indexOf(displayURL[j]))
         }
     }
@@ -349,12 +353,12 @@ function loadURLs(csvstr) {
     createWhiteCube();
     createText(textTextureID, textAlpha);
     createCaptures(captureTextureID);
-    if(isMobile){
+    if (isMobile) {
         initMobile();
-    }else{
+    } else {
         onWindowResize();
+        animate();
     }
-    animate();
 
     createCaptureTexture(captureURL, (canvas) => {
         let texture = new THREE.CanvasTexture(canvas);
@@ -481,8 +485,8 @@ function createCaptures(textureID) {
 
     let material = new THREE.MeshBasicMaterial({
         side: THREE.DoubleSide,
-        depthWrite:false,
-        depthTest:false,
+        depthWrite: false,
+        depthTest: false,
     });
 
     let commonChunk = `
@@ -516,7 +520,7 @@ function createCaptures(textureID) {
 function createWhiteCube() {
 
     let geometry = new THREE.BoxBufferGeometry(1, 1, 1);
-    let material = new THREE.MeshPhongMaterial({ color: 0xffffff, side: THREE.DoubleSide});
+    let material = new THREE.MeshPhongMaterial({ color: 0xffffff, side: THREE.DoubleSide });
     cube = new THREE.Mesh(geometry, material);
     scene.add(cube);
 
@@ -526,9 +530,9 @@ function createAsciiTexture() {
 
     const oCanvas = document.createElement('canvas');
     const oCtx = oCanvas.getContext('2d');
-    oCtx.font = fontsize+"px 'Roboto Mono', monospace";
+    oCtx.font = fontsize + "px 'Roboto Mono', monospace";
     const textMetrics = oCtx.measureText(charset);
-    const actualWidth = Math.abs(textMetrics.actualBoundingBoxRight)+Math.abs(textMetrics.actualBoundingBoxLeft);
+    const actualWidth = Math.abs(textMetrics.actualBoundingBoxRight) + Math.abs(textMetrics.actualBoundingBoxLeft);
     const actualHeight = Math.abs(textMetrics.actualBoundingBoxAscent) + Math.abs(textMetrics.actualBoundingBoxDescent);
 
     console.log(charset.length)
@@ -540,7 +544,7 @@ function createAsciiTexture() {
     //oCtx.fillStyle = "blue";
     //oCtx.fillRect(0, 0, oCanvas.width, oCanvas.height);
 
-    oCtx.font = fontsize+"px 'Roboto Mono', monospace";
+    oCtx.font = fontsize + "px 'Roboto Mono', monospace";
     oCtx.fillStyle = "rgb(255, 255, 255)";
     oCtx.textBaseline = "bottom";
     //oCtx.textAlign = "left";
@@ -553,7 +557,7 @@ function createAsciiTexture() {
 
 }
 
-function resizeAsciis(w,h) {
+function resizeAsciis(w, h) {
 
     const captureSum = displayURLs.length;
     const numPerWall = Math.ceil(captureSum / 3);
@@ -562,23 +566,23 @@ function resizeAsciis(w,h) {
     const halfW = wallWidth / 2;
     const halfH = wallHeight / 2;
 
-    const tmpWallHeight = wallHeight*2/3;
-    let edge = Math.floor(Math.sqrt(tmpWallHeight*wallWidth/numPerWall));
-    let numPerWidth = Math.floor(wallWidth/edge);
-    let numPerHeight = Math.floor(tmpWallHeight/edge);
+    const tmpWallHeight = wallHeight * 2 / 3;
+    let edge = Math.floor(Math.sqrt(tmpWallHeight * wallWidth / numPerWall));
+    let numPerWidth = Math.floor(wallWidth / edge);
+    let numPerHeight = Math.floor(tmpWallHeight / edge);
     let tmpnum = numPerWidth * numPerHeight;
-    
-    while(tmpnum < numPerWall){
+
+    while (tmpnum < numPerWall) {
         edge--;
-        numPerWidth = Math.floor(wallWidth/edge);
-        numPerHeight = Math.floor(tmpWallHeight/edge);
+        numPerWidth = Math.floor(wallWidth / edge);
+        numPerHeight = Math.floor(tmpWallHeight / edge);
         tmpnum = numPerWidth * numPerHeight;
     }
 
-    const spaceW = wallWidth/numPerWidth;
-    const spaceH = wallHeight/numPerHeight;
-    const paddingX = spaceW/2;
-    const paddingY = spaceH/2;
+    const spaceW = wallWidth / numPerWidth;
+    const spaceH = wallHeight / numPerHeight;
+    const paddingX = spaceW / 2;
+    const paddingY = spaceH / 2;
 
     const textBoxWidth = 80;
     const textPerRow = 16;
@@ -591,7 +595,7 @@ function resizeAsciis(w,h) {
 
     let translateMtx = new THREE.Matrix4();
     let rotateMtx = new THREE.Matrix4();
-    let scaleMtx = new THREE.Matrix4().makeScale(edge/100,edge/100,1);
+    let scaleMtx = new THREE.Matrix4().makeScale(edge / 100, edge / 100, 1);
 
     let wall, index, y;
     let counter = 0;
@@ -599,10 +603,10 @@ function resizeAsciis(w,h) {
     for (let i = 0; i < displayURLs.length; i++) {
         matrix = matrix.identity();
         wall = i % 3;
-        index = Math.floor(i / 3);        
+        index = Math.floor(i / 3);
         y = Math.floor(index / numPerWidth);
 
-        rotateMtx.makeRotationY(Math.PI / 2 * (wall+1));
+        rotateMtx.makeRotationY(Math.PI / 2 * (wall + 1));
         translateMtx.makeTranslation((index % numPerWidth) * spaceW - halfW + paddingX, halfH - paddingY - y * spaceH, -halfW);
         matrix.multiply(rotateMtx);
         matrix.multiply(translateMtx);
@@ -618,7 +622,7 @@ function resizeAsciis(w,h) {
             textMesh.setMatrixAt(counter, matrix2);
             counter++;
         }
-        
+
     }
 
     captureMesh.instanceMatrix.needsUpdate = true;
