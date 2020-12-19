@@ -130,10 +130,11 @@ function init() {
 
     window.addEventListener('resize', onWindowResize, false);
     document.addEventListener('mousemove', onMouseMove, false);
-    renderer.domElement.addEventListener('touchstart', function(){
+    document.getElementById('title').addEventListener('touchstart', function(){
         console.log("touch")
         if(isMobile&&!isGetDeviceOrientation){
             cameraControls = new DeviceOrientationControls(camera);
+            //cameraControls.connect();
             console.log(cameraControls)
             isMobile = Object.keys(cameraControls.deviceOrientation).length;
             isGetDeviceOrientation = isMobile;
@@ -141,7 +142,6 @@ function init() {
                 onWindowResize();
                 initControls();
             }
-                
         }
     },false);
 
