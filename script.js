@@ -59,21 +59,19 @@ const getOrientationDevice = function(){
     cameraControls = new DeviceOrientationControls(camera);
     cameraControls.connect()
     .then((value)=>{
+
         console.log('resolve',cameraControls.enabled)
         console.log(cameraControls.deviceOrientation)
         console.log(cameraControls)
         console.log(value)
         console.log(value.deviceOrientation)
         isEnableDeviceOrientation = Boolean(cameraControls.deviceOrientation.returnValue);
-        if(isEnableDeviceOrientation){
-            initMobile();
-        }else{
-            initControls()
-        }
+        initMobile();
+
     })
-    .catch((value)=>{
+    .catch(()=>{
         console.log('reject',cameraControls)
-        initControls()
+        //initControls();
     })
     title.innerText = "It's all here."
     renderer.domElement.removeEventListener('click', getOrientationDevice);
@@ -193,6 +191,7 @@ function initMobile() {
     scene.add(asciiMesh)
     cube.scale.set(mobileWidth, mobileHeight, mobileWidth);
     resizeAsciis(mobileWidth, mobileHeight);
+    animate();
 
 }
 
@@ -391,9 +390,7 @@ function loadData() {
             createCaptures(captureTextureID),
             func()])
             .then(function (values) {
-                if (isMobile) {
-                    initMobile();
-                } else {
+                if (!isMobile) {
                     onWindowResize();
                     animate();
                 }
