@@ -2,7 +2,7 @@ import * as THREE from "https://unpkg.com/three@0.122.0/build/three.module.js";
 //import * as THREE from "./node_modules/three/build/three.module.js";
 import { OrbitControls } from "https://unpkg.com/three@0.122.0/examples/jsm/controls/OrbitControls.js";
 //import { DeviceOrientationControls } from "./DeviceOrientationControls.js";
-import { DeviceOrientationControls } from "https://unpkg.com/three@0.122.0/examples/jsm/controls/DeviceOrientationControls.js";
+//import { DeviceOrientationControls } from "https://unpkg.com/three@0.122.0/examples/jsm/controls/DeviceOrientationControls.js";
 import { video2ascii } from "./video2ascii.js";
 import Stats from "https://unpkg.com/three@0.122.0/examples/jsm/libs/stats.module.js";
 
@@ -36,6 +36,7 @@ const textLineHeight = textWidth * 2;
 
 let isMobile = false;
 let isSupportDeviceOrientation = false;
+let isEnableDeviceOrientation = false;
 
 const mobileWidth = 1920;
 const mobileHeight = 1080;
@@ -53,12 +54,18 @@ let deg;
 
 const title = document.getElementById('title');
 
-const getOrientationDevice = async function(){
-    const setctrl = async function(){
-        cameraControls = new DeviceOrientationControls(camera);
-    }
-    await setctrl();
-    console.log(cameraControls)
+const getOrientationDevice = function(){
+    console.log("me")
+    cameraControls = new DeviceOrientationControls(camera);
+    cameraControls.connect()
+    .then(()=>{
+        console.log('resolve',cameraControls)
+        isEnableDeviceOrientation = true;
+        //cameraControls.deviceOrientation
+    })
+    .catch(()=>{
+        console.log('reject',cameraControls)
+    })
     title.innerText = "It's all here."
     renderer.domElement.removeEventListener('click', getOrientationDevice);
 }
@@ -377,8 +384,6 @@ function loadData() {
                 console.log(values); // => [1, 2, 3]
             });
 
-        console.log("me")
-
         createCaptureTexture(captureURL, (canvas) => {
             let texture = new THREE.CanvasTexture(canvas);
             captureMesh.material.map = texture;
@@ -651,3 +656,159 @@ function isSmartPhone() {
         return false;
     }
 }
+
+var DeviceOrientationControls = function ( object, connectEvent ) {
+
+	var scope = this;
+	var changeEvent = { type: "change" };
+	var EPS = 0.000001;
+
+	this.object = object;
+	this.object.rotation.reorder( 'YXZ' );
+
+	this.enabled = false;
+
+	this.deviceOrientation = {};
+	this.screenOrientation = 0;
+
+	this.alphaOffset = 0; // radians
+
+	this.connectEvent = connectEvent | null;
+
+	var onDeviceOrientationChangeEvent = function ( event ) {
+
+		scope.deviceOrientation = event;
+
+	};
+
+	var onScreenOrientationChangeEvent = function () {
+
+		scope.screenOrientation = window.orientation || 0;
+
+	};
+
+	// The angles alpha, beta and gamma form a set of intrinsic Tait-Bryan angles of type Z-X'-Y''
+
+	var setObjectQuaternion = function () {
+
+		var zee = new THREE.Vector3( 0, 0, 1 );
+
+		var euler = new THREE.Euler();
+
+		var q0 = new THREE.Quaternion();
+
+		var q1 = new THREE.Quaternion( - Math.sqrt( 0.5 ), 0, 0, Math.sqrt( 0.5 ) ); // - PI/2 around the x-axis
+
+		return function ( quaternion, alpha, beta, gamma, orient ) {
+
+			euler.set( beta, alpha, - gamma, 'YXZ' ); // 'ZXY' for the device, but 'YXZ' for us
+
+			quaternion.setFromEuler( euler ); // orient the device
+
+			quaternion.multiply( q1 ); // camera looks out the back of the device, not the top
+
+			quaternion.multiply( q0.setFromAxisAngle( zee, - orient ) ); // adjust for screen orientation
+
+		};
+
+	}();
+
+	this.connect = function(){
+        
+        return new Promise((resolve, reject) => {
+
+		onScreenOrientationChangeEvent(); // run once on load
+
+		// iOS 13+
+
+		if ( window.DeviceOrientationEvent !== undefined && typeof window.DeviceOrientationEvent.requestPermission === 'function' ) {
+
+			window.DeviceOrientationEvent.requestPermission().then( function ( response ) {
+
+				if ( response == 'granted' ) {
+
+					window.addEventListener( 'orientationchange', onScreenOrientationChangeEvent, false );
+                    window.addEventListener( 'deviceorientation', onDeviceOrientationChangeEvent, false );
+                    resolve();
+
+				}
+
+			} ).catch( function ( error ) {
+
+                console.error( 'THREE.DeviceOrientationControls: Unable to use DeviceOrientation API:', error );
+                reject();
+                
+			} );
+
+		} else {
+
+			window.addEventListener( 'orientationchange', onScreenOrientationChangeEvent, false );
+            window.addEventListener( 'deviceorientation', onDeviceOrientationChangeEvent, false );
+            resolve();
+
+		}
+
+        scope.enabled = true;
+
+    });
+}
+
+	this.disconnect = function () {
+
+		window.removeEventListener( 'orientationchange', onScreenOrientationChangeEvent, false );
+		window.removeEventListener( 'deviceorientation', onDeviceOrientationChangeEvent, false );
+
+		scope.enabled = false;
+
+	};
+
+	this.update = ( function () {
+
+		var lastQuaternion = new THREE.Quaternion();
+
+		return function () {
+
+			if ( scope.enabled === false ) return;
+
+			var device = scope.deviceOrientation;
+
+			if ( device ) {
+
+				var alpha = device.alpha ? MathUtils.degToRad( device.alpha ) + scope.alphaOffset : 0; // Z
+
+				var beta = device.beta ? MathUtils.degToRad( device.beta ) : 0; // X'
+
+				var gamma = device.gamma ? MathUtils.degToRad( device.gamma ) : 0; // Y''
+
+				var orient = scope.screenOrientation ? MathUtils.degToRad( scope.screenOrientation ) : 0; // O
+
+				setObjectQuaternion( scope.object.quaternion, alpha, beta, gamma, orient );
+
+				if ( 8 * ( 1 - lastQuaternion.dot( scope.object.quaternion ) ) > EPS ) {
+
+					lastQuaternion.copy( scope.object.quaternion );
+					scope.dispatchEvent( changeEvent );
+
+				}
+
+			}
+
+		};
+
+
+	} )();
+
+	this.dispose = function () {
+
+		scope.disconnect();
+
+	};
+
+	//this.connect();
+
+};
+
+DeviceOrientationControls.prototype = Object.create( THREE.EventDispatcher.prototype );
+DeviceOrientationControls.prototype.constructor = DeviceOrientationControls;
+
+export { DeviceOrientationControls };
