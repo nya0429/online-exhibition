@@ -1,11 +1,7 @@
 import * as THREE from "https://unpkg.com/three@0.122.0/build/three.module.js";
 //import * as THREE from "./node_modules/three/build/three.module.js";
-
-import { TrackballControls } from "https://unpkg.com/three@0.122.0/examples/jsm/controls/TrackballControls.js";
 import { OrbitControls } from "https://unpkg.com/three@0.122.0/examples/jsm/controls/OrbitControls.js";
 import { DeviceOrientationControls } from "https://unpkg.com/three@0.122.0/examples/jsm/controls/DeviceOrientationControls.js";
-
-import { CSS3DRenderer, CSS3DObject } from 'https://unpkg.com/three@0.122.0/examples/jsm/renderers/CSS3DRenderer.js';
 import { video2ascii } from "./video2ascii.js";
 import Stats from "https://unpkg.com/three@0.122.0/examples/jsm/libs/stats.module.js";
 
@@ -50,24 +46,15 @@ let deg;
 
 const title = document.getElementById('title');
 
-title.addEventListener('click', function(){
+const getOrientationDevice = () =>{
     console.log("click")
     if(isMobile&&!isGetDeviceOrientation){
         cameraControls = new DeviceOrientationControls(camera);
-        //cameraControls.connect();
-        console.log(cameraControls)
-        isMobile = Object.keys(cameraControls.deviceOrientation).length;
-        isGetDeviceOrientation = isMobile;
-        if(!isMobile && !sceneControls){
-            onWindowResize();
-            initControls();
-        }
+        isGetDeviceOrientation = cameraControls.deviceOrientation.returnValue;
     }
-},false);
+}
 
 init()
-
-
 
 function isSmartPhone() {
     if (navigator.userAgent.match(/iPhone|Android.+Mobile/)) {
@@ -77,13 +64,12 @@ function isSmartPhone() {
     }
 }
 
-
 function init() {
 
+    isMobile = isSmartPhone();
+    
     deg = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
     camera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 1, 10000);
-
-    isMobile = isSmartPhone();
 
     renderer = new THREE.WebGLRenderer({
         depth: false,
@@ -98,6 +84,8 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     document.body.appendChild(renderer.domElement);
+    renderer.domElement.addEventListener('click',getOrientationDevice,false);
+    
 
 
     scene = new THREE.Scene();
@@ -265,19 +253,17 @@ function animate() {
     } else {
         renderer.domElement.style.cursor = "default"
     }
-    if(cameraControls != null){
-        cameraControls.update();
-    }
-    if (!isMobile) {
+
+    cameraControls.update();
+    if (!isGetDeviceOrientation) {
         sceneControls.update();
         orbitCamera.getWorldPosition(camera.position)
         camera.position.z -= windowHalfWidth
         sceneControlCamera.getWorldQuaternion(scene.quaternion)
-        //console.log(scene.quaternion)
         scene.quaternion.inverse();
     }
-    renderer.render(scene, camera);
 
+    renderer.render(scene, camera);
     requestAnimationFrame(animate);
 
     stats.end();
