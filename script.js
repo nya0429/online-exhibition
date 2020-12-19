@@ -40,6 +40,7 @@ let isEnableDeviceOrientation = false;
 
 const mobileWidth = 1920;
 const mobileHeight = 1080;
+const mobileSize = Math.max(window.innerHeight,window.innerWidth);
 
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2(1, 1);
@@ -186,10 +187,10 @@ function initControls() {
 
 function initMobile() {
     
-    asciiMesh = effect.setSize(mobileWidth / 2, mobileHeight / 2);
+    asciiMesh = effect.setSize(mobileSize, mobileSize);
     scene.add(asciiMesh)
-    cube.scale.set(mobileWidth, mobileHeight, mobileWidth);
-    resizeAsciis(mobileWidth, mobileHeight);
+    cube.scale.set(mobileSize*2, mobileSize*2, mobileSize*2);
+    resizeAsciis(mobileSize*2, mobileSize*2);
     animate();
 
     console.log("initMobile end")
