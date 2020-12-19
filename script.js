@@ -95,6 +95,7 @@ function init() {
     camera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 1, 10000);
     scene = new THREE.Scene();
 
+    console.log(isMobile)
     if (isMobile) {
         renderer.domElement.addEventListener('click', getOrientationDevice, false);
         title.innerText = 'touch to allow'
