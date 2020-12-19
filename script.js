@@ -291,7 +291,8 @@ function animate() {
     camera.position.z -= cubeHalfWidth
 
     if (isEnableDeviceOrientation) {
-        rotateCamera.getWorldQuaternion(camera.quaternion)
+        rotateCamera.getWorldQuaternion(scene.quaternion)
+        scene.quaternion.inverse();
     }else{
         rotateCamera.getWorldQuaternion(scene.quaternion)
         scene.quaternion.inverse();
