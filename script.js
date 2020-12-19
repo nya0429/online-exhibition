@@ -38,17 +38,15 @@ let isMobile = false;
 let isSupportDeviceOrientation = false;
 let isEnableDeviceOrientation = false;
 
-const mobileWidth = 1920;
-const mobileHeight = 1080;
-const mobileSize = Math.max(window.innerHeight,window.innerWidth);
 
+const mobileSize = Math.max(window.innerHeight,window.innerWidth);
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2(1, 1);
 
-let windowWidth = window.innerWidth;
-let windowHeight = window.innerHeight;
-let windowHalfWidth = windowWidth / 2;
-let windowHalfHeight = windowHeight / 2;
+let cubeWidth = window.innerWidth;
+let cubeHeight = window.innerHeight;
+let cubeHalfWidth = cubeWidth / 2;
+let cubeHalfHeight = cubeHeight / 2;
 
 let lightHelper, shadowCameraHelper, spotLight;
 let deg;
@@ -57,7 +55,7 @@ const title = document.getElementById('title');
 
 const getOrientationDevice = function(){
     console.log("me")
-    rotateControls = new DeviceOrientationControls(camera);
+    rotateControls = new DeviceOrientationControls(rotateCamera);
     rotateControls.connect()
     .then((value)=>{
         console.log('resolve',rotateControls.enabled)
@@ -81,6 +79,12 @@ init()
 function init() {
 
     isMobile = isSmartPhone();
+    if(isMobile){
+        cubeWidth = mobileSize*2;
+        cubeHeight = mobileSize*2;
+        cubeHalfWidth = mobileSize;
+        cubeHalfHeight = mobileSize;
+    }
     isSupportDeviceOrientation = Boolean(window.DeviceOrientationEvent);
 
     renderer = new THREE.WebGLRenderer({
@@ -101,7 +105,6 @@ function init() {
     camera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
     rotateCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
     zoomCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
-
 
     scene = new THREE.Scene();
 
@@ -131,7 +134,7 @@ function addLight() {
     // lights
     let mainLight = new THREE.PointLight(0xcccccc, 2, window.innerWidth, 2);
     scene.add(mainLight);
-    //mainLight.position.x = windowHalfWidth*0.9;
+    //mainLight.position.x = cubeHalfWidth*0.9;
     //mainLight.position.y = 60;
     const ambient = new THREE.AmbientLight(0xffffff, 0.1);
     scene.add(ambient);
@@ -180,11 +183,11 @@ function initRotateControls() {
 
 function initZoomControls(){
 
-    zoomCamera.position.set(0, 0, windowHalfWidth);
+    zoomCamera.position.set(0, 0, cubeHalfWidth);
     zoomControls = new OrbitControls(zoomCamera, renderer.domElement);
     zoomControls.enablePan = false;
     zoomControls.enableRotate = false;
-    zoomControls.maxDistance = windowHalfWidth;
+    zoomControls.maxDistance = cubeHalfWidth;
     zoomControls.enableDamping = true;
     zoomControls.dampingFactor = 0.1;
 
@@ -192,10 +195,10 @@ function initZoomControls(){
 
 function initMobile() {
     
-    asciiMesh = effect.setSize(mobileSize, mobileSize);
+    asciiMesh = effect.setSize(cubeHalfWidth, cubeHalfHeight);
     scene.add(asciiMesh)
-    cube.scale.set(mobileSize*2, mobileSize*2, mobileSize*2);
-    resizeAsciis(mobileSize*2, mobileSize*2);
+    cube.scale.set(cubeWidth, cubeHeight, cubeWidth);
+    resizeAsciis(cubeWidth, cubeHeight);
     initZoomControls();
     animate();
     console.log("initMobile end")
@@ -204,30 +207,32 @@ function initMobile() {
 
 function onWindowResize() {
 
-    windowWidth = window.innerWidth;
-    windowHeight = window.innerHeight;
-    windowHalfWidth = windowWidth / 2;
-    windowHalfHeight = windowHeight / 2;
-
     camera.fov = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
+
+    zoomCamera.fov = camera.fov;
+    zoomCamera.aspect = camera.aspect;
+    zoomCamera.updateProjectionMatrix();
+
+    rotateCamera.fov = camera.fov;
+    rotateCamera.aspect = camera.aspect;
+    rotateCamera.updateProjectionMatrix();
 
     scene.remove(asciiMesh)
 
     if (!isMobile) {
 
-        asciiMesh = effect.setSize(windowHalfWidth, windowHalfHeight);
+        cubeWidth = window.innerWidth;
+        cubeHeight = window.innerHeight;
+        cubeHalfWidth = cubeWidth / 2;
+        cubeHalfHeight = cubeHeight / 2;
+        asciiMesh = effect.setSize(cubeHalfWidth, cubeHalfHeight);
         scene.add(asciiMesh)
-        cube.scale.set(window.innerWidth, window.innerHeight, window.innerWidth);
-        resizeAsciis(window.innerWidth, window.innerHeight);
+        cube.scale.set(cubeWidth, cubeHeight, cubeWidth);
+        resizeAsciis(cubeWidth, cubeHeight);
 
-    }else if(!isEnableDeviceOrientation){
-
-        asciiMesh = effect.setSize(windowWidth, windowHeight);
-        scene.add(asciiMesh)
-        cube.scale.set(windowWidth*2, window.innerHeight*2, window.innerWidth*2);
-        resizeAsciis(window.innerWidth*2, window.innerHeight*2);
+        zoomControls.maxDistance = cubeHalfWidth;
 
     }
 
@@ -281,16 +286,13 @@ function animate() {
     }
 
     rotateControls.update();
-
+    zoomControls.update();
+    zoomCamera.getWorldPosition(camera.position)
+    camera.position.z -= cubeHalfWidth
 
     if (isEnableDeviceOrientation) {
-
-        //rotateCamera.getWorldQuaternion(scene.quaternion)
-
+        rotateCamera.getWorldQuaternion(camera.quaternion)
     }else{
-        zoomControls.update();
-        zoomCamera.getWorldPosition(camera.position)
-        camera.position.z -= windowHalfWidth
         rotateCamera.getWorldQuaternion(scene.quaternion)
         scene.quaternion.inverse();
     }
