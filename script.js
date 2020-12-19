@@ -51,7 +51,7 @@ let deg;
 const title = document.getElementById('title');
 
 title.addEventListener('click', function(){
-    console.log("touch")
+    console.log("click")
     if(isMobile&&!isGetDeviceOrientation){
         cameraControls = new DeviceOrientationControls(camera);
         //cameraControls.connect();
