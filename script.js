@@ -1,6 +1,7 @@
 import * as THREE from "https://unpkg.com/three@0.122.0/build/three.module.js";
 //import * as THREE from "./node_modules/three/build/three.module.js";
 import { OrbitControls } from "https://unpkg.com/three@0.122.0/examples/jsm/controls/OrbitControls.js";
+//import { DeviceOrientationControls } from "./DeviceOrientationControls.js";
 import { DeviceOrientationControls } from "https://unpkg.com/three@0.122.0/examples/jsm/controls/DeviceOrientationControls.js";
 import { video2ascii } from "./video2ascii.js";
 import Stats from "https://unpkg.com/three@0.122.0/examples/jsm/libs/stats.module.js";
@@ -10,6 +11,7 @@ let orbitCamera, sceneControlCamera;
 let renderer, scene;
 let effect;
 
+const DataURL = "./online_exhibition_list.csv"
 const marks = '[\\/:*?"<>|]+';
 const regExp = new RegExp(marks, "g");
 
@@ -26,16 +28,20 @@ let asciiMesh;
 let textMesh;
 let captureMesh;
 
+const textBoxWidth = 80;
+const textPerRow = 16;
+const textWidth = textBoxWidth / textPerRow;
+const textHeight = textWidth * 2;
+const textLineHeight = textWidth * 2;
+
 let isMobile = false;
-let isReturn = false;
-let isGetDeviceOrientation = false;
+let isSupportDeviceOrientation = false;
 
 const mobileWidth = 1920;
 const mobileHeight = 1080;
 
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2(1, 1);
-
 
 let windowWidth = window.innerWidth;
 let windowHeight = window.innerHeight;
@@ -47,37 +53,21 @@ let deg;
 
 const title = document.getElementById('title');
 
-const getOrientationDevice = () => {
-
-    cameraControls = new DeviceOrientationControls(camera);
-    isGetDeviceOrientation = cameraControls.deviceOrientation.returnValue;
-    isGetDeviceOrientation = !isGetDeviceOrientation ? false : true;
-    console.log(cameraControls)
-    console.log(cameraControls.deviceOrientation)
-    console.log(isGetDeviceOrientation)
-    if(!isGetDeviceOrientation){
-        initControls();
+const getOrientationDevice = async function(){
+    const setctrl = async function(){
+        cameraControls = new DeviceOrientationControls(camera);
     }
-
+    await setctrl();
+    console.log(cameraControls)
     title.innerText = "It's all here."
-    animate();
     renderer.domElement.removeEventListener('click', getOrientationDevice);
-
 }
 
 init()
-
-function isSmartPhone() {
-    if (navigator.userAgent.match(/iPhone|Android.+Mobile/)) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
 function init() {
 
     isMobile = isSmartPhone();
+    isSupportDeviceOrientation = Boolean(window.DeviceOrientationEvent);
 
     renderer = new THREE.WebGLRenderer({
         depth: false,
@@ -97,14 +87,14 @@ function init() {
     camera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 1, 10000);
     scene = new THREE.Scene();
 
-    console.log(isMobile)
-    if (isMobile) {
+    if (isMobile && isSupportDeviceOrientation) {
         renderer.domElement.addEventListener('click', getOrientationDevice, false);
         title.innerText = 'touch to allow'
-    }else{
+    } else {
         initControls();
     }
-    loadCSV();
+
+    loadData();
 
     stats = new Stats();
     document.body.appendChild(stats.dom);
@@ -203,7 +193,7 @@ function onWindowResize() {
 
     scene.remove(asciiMesh)
 
-    if (!isGetDeviceOrientation) {
+    if (!isMobile) {
 
         asciiMesh = effect.setSize(windowHalfWidth, windowHalfHeight);
         scene.add(asciiMesh)
@@ -262,7 +252,7 @@ function animate() {
     }
 
     cameraControls.update();
-    if (!isGetDeviceOrientation) {
+    if (!isMobile) {
         sceneControls.update();
         orbitCamera.getWorldPosition(camera.position)
         camera.position.z -= windowHalfWidth
@@ -277,108 +267,184 @@ function animate() {
 }
 
 function loadCSV() {
-    let req = new XMLHttpRequest();
-    req.open("get", "./online_exhibition_list.csv", true);
-    req.send(null);
-    req.onload = function () {
-        window.addEventListener('load', loadURLs(req.responseText));
-    }
+
+    return new Promise((resolve, reject) => {
+        let xhr = new XMLHttpRequest();
+        xhr.open("GET", DataURL);
+        xhr.onload = () => {
+            if (xhr.status === 200) {
+                resolve(xhr.response);
+            } else {
+                reject(new Error(xhr.statusText));
+            }
+        };
+        xhr.onerror = () => {
+            reject(new Error(xhr.statusText));
+        };
+        xhr.send();
+    });
 }
 
-function loadURLs(csvstr) {
+function loadData() {
 
-    for (let i = 0; i < charset.length; i++) {
-        asciiMap[i] = [];
-    }
+    return loadCSV().then((csvstr) => {
 
-    let urls = csvstr.split("\n");
-    let asciinum = 0;
-    let captureTextureID = [];
-    let captureURL = [];
-    let textAlpha = [];
+        for (let i = 0; i < charset.length; i++) {
+            asciiMap[i] = [];
+        }
 
-    for (let i = 0; i < urls.length; i++) {
+        let urls = csvstr.split("\n");
+        let asciinum = 0;
+        let captureTextureID = [];
+        let captureURL = [];
+        let textAlpha = [];
 
-        let col = urls[i].split(",");
-        let displayURL = col[0];
-        let linkURL = col[1];
+        for (let i = 0; i < urls.length; i++) {
 
-        displayURLs[i] = displayURL;
-        linkURLs[i] = linkURL;
+            let col = urls[i].split(",");
+            let displayURL = col[0];
+            let linkURL = col[1];
 
-        captureTextureID.push(i);
-        captureURL.push("./img/" + displayURL.replace(regExp, '') + ".png");
+            displayURLs[i] = displayURL;
+            linkURLs[i] = linkURL;
 
-        for (let j = 0; j < displayURL.length; j++) {
+            captureTextureID.push(i);
+            captureURL.push("./img/" + displayURL.replace(regExp, '') + ".png");
 
-            let index = charset.indexOf(displayURL[j]);
+            for (let j = 0; j < displayURL.length; j++) {
 
-            textAlpha.push(1);
+                let index = charset.indexOf(displayURL[j]);
 
-            let obj = {
-                url: linkURL,
-                urlIndex: i,
-                id: asciinum + j,
+                textAlpha.push(1);
+
+                let obj = {
+                    url: linkURL,
+                    urlIndex: i,
+                    id: asciinum + j,
+                }
+
+                asciiMap[index].push(obj)
+                if (index == -1) {
+                    console.log("ascii not found", obj);
+                }
             }
 
-            asciiMap[index].push(obj)
-            if (index == -1) {
-                console.log("ascii not found", obj);
+            asciinum += col[0].length
+        }
+
+        console.log(asciinum);
+
+        for (let i = charset.length; i > 0; i--) {
+            let num = asciiMap[i - 1].length;
+            if (num == 0) {
+                charset = charset.replace(charset[i - 1], "");
             }
         }
 
-        asciinum += col[0].length
-    }
+        asciiMap = asciiMap.filter(el => el.length > 0)
 
-    console.log(asciinum);
-
-
-    for (let i = charset.length; i > 0; i--) {
-        let num = asciiMap[i - 1].length;
-        if (num == 0) {
-            charset = charset.replace(charset[i - 1], "");
+        const createEffect = async function(){
+            effect = new video2ascii(charset, asciiMap, { color: true, invert: true })
         }
-    }
+        createEffect();
 
-    asciiMap = asciiMap.filter(el => el.length > 0)
-
-    effect = new video2ascii(charset, asciiMap, { color: true, invert: true });
-
-    let textTextureID = [];
-    let displayURL;
-    for (let i = 0; i < displayURLs.length; i++) {
-        displayURL = displayURLs[i];
-        for (let j = 0; j < displayURL.length; j++) {
-            textTextureID.push(charset.indexOf(displayURL[j]))
+        let textTextureID = [];
+        let displayURL;
+        for (let i = 0; i < displayURLs.length; i++) {
+            displayURL = displayURLs[i];
+            for (let j = 0; j < displayURL.length; j++) {
+                textTextureID.push(charset.indexOf(displayURL[j]))
+            }
         }
-    }
 
-    createWhiteCube();
-    createText(textTextureID, textAlpha);
-    createCaptures(captureTextureID);
-    if (isMobile) {
-        initMobile();
-    } else {
-        onWindowResize();
-        animate();
-    }
+        const func = async function () {
+            await createAsciiTexture();
+            createText(textTextureID, textAlpha);
+            effect.init(asciiTexture);
+        }
 
-    createCaptureTexture(captureURL, (canvas) => {
-        let texture = new THREE.CanvasTexture(canvas);
-        captureMesh.material.map = texture;
-        captureMesh.material.needsUpdate = true;
-    })
+        Promise.all([
+            createWhiteCube(),
+            createCaptures(captureTextureID),
+            func()])
+            .then(function (values) {
+                if (isMobile) {
+                    initMobile();
+                } else {
+                    onWindowResize();
+                    animate();
+                }
+                console.log(values); // => [1, 2, 3]
+            });
+
+        console.log("me")
+
+        createCaptureTexture(captureURL, (canvas) => {
+            let texture = new THREE.CanvasTexture(canvas);
+            captureMesh.material.map = texture;
+            captureMesh.material.needsUpdate = true;
+        })
+
+    });
+}
+
+async function createWhiteCube() {
+    const geometry = new THREE.BoxBufferGeometry(1, 1, 1);
+    const material = new THREE.MeshPhongMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+    cube = new THREE.Mesh(geometry, material);
+    scene.add(cube);
+    console.log("finish create whitecube");
+}
+
+async function createCaptures(textureID) {
+
+    let plane = new THREE.PlaneBufferGeometry(60, 60 * 3 / 4);
+
+    plane.translate(0, 30, 0)
+    let geometry = new THREE.InstancedBufferGeometry();
+    THREE.BufferGeometry.prototype.copy.call(geometry, plane);
+
+    let material = new THREE.MeshBasicMaterial({
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        depthTest: false,
+    });
+
+    let commonChunk = `
+    attribute float textureID;
+    #include <common>
+    `
+    let uvChunk = `
+    #ifdef USE_UV
+    vUv = ( uvTransform * vec3( uv, 1 ) ).xy;
+    vUv.x = (textureID+vUv.x)/`+ textureID.length + `.0;
+    #endif
+    `
+    let beginVertexChunk = `
+    vec3 transformed = vec3( position );
+    sampler2D t = textureArray[1];
+    //transformed = instancePos+transformed;
+    `
+    material.onBeforeCompile = function (shader) {
+        shader.vertexShader = shader.vertexShader
+            .replace('#include <common>', commonChunk)
+            .replace('#include <uv_vertex>', uvChunk)
+        //.replace('#include <begin_vertex>', beginVertexChunk);
+    };
+
+    geometry.setAttribute('textureID', new THREE.InstancedBufferAttribute(new Uint8Array(textureID), 1));
+    captureMesh = new THREE.InstancedMesh(geometry, material, textureID.length);
+    scene.add(captureMesh);
+    console.log("finish create captureMesh");
 
 }
 
-function createText(textureID, alpha) {
+async function createText(textureID, alpha) {
 
-    let textWidth = 5;
     let plane = new THREE.PlaneBufferGeometry(textWidth, textWidth * 2);
     let geometry = new THREE.InstancedBufferGeometry();
     THREE.BufferGeometry.prototype.copy.call(geometry, plane);
 
-    createAsciiTexture();//実行タイミングここでいいのか？
     let material = new THREE.MeshBasicMaterial({
         map: asciiTexture,
         side: THREE.DoubleSide,
@@ -454,6 +520,7 @@ function createText(textureID, alpha) {
     textMesh.instanceColor.needsUpdate = true;
 
     scene.add(textMesh);
+    console.log("finish create Text")
 
 }
 
@@ -478,58 +545,7 @@ function createCaptureTexture(captureURL, callback) {
     img.src = captureURL[0];
 }
 
-function createCaptures(textureID) {
-
-    let plane = new THREE.PlaneBufferGeometry(60, 60 * 3 / 4);
-
-    plane.translate(0, 30, 0)
-    let geometry = new THREE.InstancedBufferGeometry();
-    THREE.BufferGeometry.prototype.copy.call(geometry, plane);
-
-    let material = new THREE.MeshBasicMaterial({
-        side: THREE.DoubleSide,
-        depthWrite: false,
-        depthTest: false,
-    });
-
-    let commonChunk = `
-    attribute float textureID;
-    #include <common>
-    `
-    let uvChunk = `
-    #ifdef USE_UV
-    vUv = ( uvTransform * vec3( uv, 1 ) ).xy;
-    vUv.x = (textureID+vUv.x)/`+ textureID.length + `.0;
-    #endif
-    `
-    let beginVertexChunk = `
-    vec3 transformed = vec3( position );
-    sampler2D t = textureArray[1];
-    //transformed = instancePos+transformed;
-    `
-    material.onBeforeCompile = function (shader) {
-        shader.vertexShader = shader.vertexShader
-            .replace('#include <common>', commonChunk)
-            .replace('#include <uv_vertex>', uvChunk)
-        //.replace('#include <begin_vertex>', beginVertexChunk);
-    };
-
-    geometry.setAttribute('textureID', new THREE.InstancedBufferAttribute(new Uint8Array(textureID), 1));
-    captureMesh = new THREE.InstancedMesh(geometry, material, textureID.length);
-    scene.add(captureMesh);
-
-}
-
-function createWhiteCube() {
-
-    let geometry = new THREE.BoxBufferGeometry(1, 1, 1);
-    let material = new THREE.MeshPhongMaterial({ color: 0xffffff, side: THREE.DoubleSide });
-    cube = new THREE.Mesh(geometry, material);
-    scene.add(cube);
-
-}
-
-function createAsciiTexture() {
+async function createAsciiTexture() {
 
     const oCanvas = document.createElement('canvas');
     const oCtx = oCanvas.getContext('2d');
@@ -555,8 +571,9 @@ function createAsciiTexture() {
     asciiTexture = new THREE.CanvasTexture(oCanvas);
     asciiTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
     asciiTexture.minFilter = THREE.NearestMipmapLinearFilter;
-    effect.init(asciiTexture);
+    //effect.init(asciiTexture);
     //document.body.appendChild(oCanvas)
+    console.log("finish create AsciiTexture");
 
 }
 
@@ -586,12 +603,6 @@ function resizeAsciis(w, h) {
     const spaceH = wallHeight / numPerHeight;
     const paddingX = spaceW / 2;
     const paddingY = spaceH / 2;
-
-    const textBoxWidth = 80;
-    const textPerRow = 16;
-    const textWidth = textBoxWidth / textPerRow;
-    const textHeight = textWidth * 2;
-    const textLineHeight = textWidth * 2;
 
     let matrix = new THREE.Matrix4();
     let matrix2 = new THREE.Matrix4();
@@ -631,4 +642,12 @@ function resizeAsciis(w, h) {
     captureMesh.instanceMatrix.needsUpdate = true;
     textMesh.instanceMatrix.needsUpdate = true;
 
+}
+
+function isSmartPhone() {
+    if (navigator.userAgent.match(/iPhone|Android.+Mobile/)) {
+        return true;
+    } else {
+        return false;
+    }
 }

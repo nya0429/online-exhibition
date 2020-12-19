@@ -5,14 +5,14 @@ let video2ascii = function (_charset, _asciiMap, options) {
     const video = document.getElementById("video");
     const videoTexture = new THREE.VideoTexture(video);
     this.touchEvent;
-    
+
     const scene = new THREE.Scene();
     const camera = new THREE.Camera();
-    const renderer = new THREE.WebGLRenderer({ 
-        alpha: true, 
+    const renderer = new THREE.WebGLRenderer({
+        alpha: true,
         premultipliedAlpha: false,
-        depth:false,
-        stencil:false,
+        depth: false,
+        stencil: false,
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
     const webGLCtx = renderer.getContext();
@@ -58,9 +58,9 @@ let video2ascii = function (_charset, _asciiMap, options) {
         return m;
     };
 
-    this.init = function (texture){
+    this.init = function (texture) {
 
-        const vs = `
+            const vs = `
         #include <common>
         varying vec2 vUv;
 	    uniform mat3 uvTransform;
@@ -81,8 +81,8 @@ let video2ascii = function (_charset, _asciiMap, options) {
             #include <worldpos_vertex>        
         }
         `;
-        
-        const fs = `
+
+            const fs = `
         uniform vec3 diffuse;
         uniform float opacity;
                 
@@ -120,20 +120,22 @@ let video2ascii = function (_charset, _asciiMap, options) {
         }
         `;
 
-        let uniforms = THREE.UniformsUtils.clone(THREE.ShaderLib.basic.uniforms)
-        uniforms.map.value = videoTexture;
+            let uniforms = THREE.UniformsUtils.clone(THREE.ShaderLib.basic.uniforms)
+            uniforms.map.value = videoTexture;
 
-        console.log(texture)
-        uniforms['ascii'] = {value:texture}
+            console.log(texture)
+            uniforms['ascii'] = { value: texture }
 
-        console.log(uniforms)
-        asciiMaterial = new THREE.ShaderMaterial({
-            side: THREE.DoubleSide,
-            transparent: true,
-            vertexShader: vs,
-            fragmentShader: fs,
-            uniforms:uniforms,
-        });
+            console.log(uniforms)
+            asciiMaterial = new THREE.ShaderMaterial({
+                side: THREE.DoubleSide,
+                transparent: true,
+                vertexShader: vs,
+                fragmentShader: fs,
+                uniforms: uniforms,
+            });
+
+            console.log("finish ascii texture init")
 
     }
 
@@ -236,37 +238,37 @@ let video2ascii = function (_charset, _asciiMap, options) {
 
         iWidth = Math.round(width * fResolution);
         iHeight = Math.round(height * fResolution / 2);
-        iPixel = iWidth*iHeight;
+        iPixel = iWidth * iHeight;
 
         oImgData = new Uint8Array(4 * iPixel);
 
         renderer.setSize(iWidth, iHeight);
 
-        console.log("Size", iWidth, iHeight,"preSize", preWidth, preHeight);
-        console.log("pixel", iPixel,"prePixel", prePixel);
+        console.log("Size", iWidth, iHeight, "preSize", preWidth, preHeight);
+        console.log("pixel", iPixel, "prePixel", prePixel);
 
-        let textWidth = width/iWidth;
+        let textWidth = width / iWidth;
         let plane = new THREE.PlaneBufferGeometry(textWidth, textWidth * 2);
-        plane.translate(textWidth/2,textWidth,0);
+        plane.translate(textWidth / 2, textWidth, 0);
         THREE.BufferGeometry.prototype.copy.call(asciiGeometry, plane);
-        
-        asciiInstanceUV = new THREE.InstancedBufferAttribute(new Float32Array(iWidth*iHeight),1);
-        asciiInstanceURL = new THREE.InstancedBufferAttribute(new Uint8Array(iWidth*iHeight),1);
+
+        asciiInstanceUV = new THREE.InstancedBufferAttribute(new Float32Array(iWidth * iHeight), 1);
+        asciiInstanceURL = new THREE.InstancedBufferAttribute(new Uint8Array(iWidth * iHeight), 1);
 
         asciiGeometry.setAttribute('asciiInstanceUV', asciiInstanceUV);
         asciiGeometry.setAttribute('asciiInstanceURL', asciiInstanceURL);
 
-        asciiMesh = new THREE.InstancedMesh(asciiGeometry,asciiMaterial,iWidth*iHeight)
+        asciiMesh = new THREE.InstancedMesh(asciiGeometry, asciiMaterial, iWidth * iHeight)
 
         let mat4 = new THREE.Matrix4();
         let i;
-        let halfW = width/2;
-        let halfH = height/2;
-        for(let y = 0; y < iHeight; y++){
-            for(let x = 0; x < iWidth; x++){
+        let halfW = width / 2;
+        let halfH = height / 2;
+        for (let y = 0; y < iHeight; y++) {
+            for (let x = 0; x < iWidth; x++) {
                 i = y * iWidth + x;
-                mat4.makeTranslation(x*textWidth-halfW, y*textWidth*2-halfH, -width)
-                asciiMesh.setMatrixAt(i,mat4);
+                mat4.makeTranslation(x * textWidth - halfW, y * textWidth * 2 - halfH, -width)
+                asciiMesh.setMatrixAt(i, mat4);
             }
         }
 
@@ -277,7 +279,7 @@ let video2ascii = function (_charset, _asciiMap, options) {
 
     this.asciifyImage = (textMesh) => {
 
-        if(textMesh == null){
+        if (textMesh == null) {
             return;
         }
 
@@ -285,23 +287,23 @@ let video2ascii = function (_charset, _asciiMap, options) {
 
         webGLCtx.readPixels(0, 0, webGLCtx.drawingBufferWidth, webGLCtx.drawingBufferHeight, webGLCtx.RGBA, webGLCtx.UNSIGNED_BYTE, oImgData);
         let tmpMap = JSON.parse(JSON.stringify(asciiMap));
-        
-        let threeColor = new THREE.Color(0,0,0);
+
+        let threeColor = new THREE.Color(0, 0, 0);
         for (let i = 0; i < textMesh.count; i++) {
             textMesh.setColorAt(i, threeColor);
-            textMesh.geometry.attributes.alpha.setX(i,1);
+            textMesh.geometry.attributes.alpha.setX(i, 1);
         }
 
-        let i,iOffset,iCharIdx;
-        let tmplist,find,rand;
+        let i, iOffset, iCharIdx;
+        let tmplist, find, rand;
         let charlength = charset.length - 1;
-        let tmp = charlength/255;
+        let tmp = charlength / 255;
 
         for (let y = 0; y < iHeight; y++) {
             for (let x = 0; x < iWidth; x++) {
                 i = y * iWidth + x;
-                iOffset = i*4;
-                iCharIdx = Math.floor(oImgData[iOffset + 3]*tmp);
+                iOffset = i * 4;
+                iCharIdx = Math.floor(oImgData[iOffset + 3] * tmp);
                 tmplist = tmpMap[iCharIdx];
                 find = true;
 
@@ -317,16 +319,16 @@ let video2ascii = function (_charset, _asciiMap, options) {
                 }
 
                 rand = Math.floor(Math.random() * tmplist.length);
-                threeColor.setRGB(oImgData[iOffset]/255,oImgData[iOffset+1]/255,oImgData[iOffset+2]/255)
-                textMesh.setColorAt(tmplist[rand].id,threeColor)
-                textMesh.geometry.attributes.alpha.setX(tmplist[rand].id,0.1);
-                asciiInstanceUV.setX(i,iCharIdx)
+                threeColor.setRGB(oImgData[iOffset] / 255, oImgData[iOffset + 1] / 255, oImgData[iOffset + 2] / 255)
+                textMesh.setColorAt(tmplist[rand].id, threeColor)
+                textMesh.geometry.attributes.alpha.setX(tmplist[rand].id, 0.1);
+                asciiInstanceUV.setX(i, iCharIdx)
                 //console.log(iCharIdx);
-                asciiInstanceURL.setX(i,tmplist[rand].urlIndex)
-                asciiMesh.setColorAt(i,threeColor)
+                asciiInstanceURL.setX(i, tmplist[rand].urlIndex)
+                asciiMesh.setColorAt(i, threeColor)
 
                 if (find) {
-                    tmplist.splice(rand,1);
+                    tmplist.splice(rand, 1);
                 }
             }
         }
@@ -338,6 +340,7 @@ let video2ascii = function (_charset, _asciiMap, options) {
 
     }
     start();
+    console.log("finish video2ascii create")
 }
 
 export { video2ascii };
