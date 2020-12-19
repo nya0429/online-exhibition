@@ -60,11 +60,14 @@ const getOrientationDevice = function(){
     cameraControls.connect()
     .then(()=>{
         console.log('resolve',cameraControls.deviceOrientation.returnValue)
-        isEnableDeviceOrientation = true;
-        //cameraControls.deviceOrientation
+        console.log(cameraControls.deviceOrientation)
+
+        isEnableDeviceOrientation = Boolean(cameraControls.deviceOrientation.returnValue);
+        initControls()
     })
     .catch(()=>{
         console.log('reject',cameraControls)
+        initControls()
     })
     title.innerText = "It's all here."
     renderer.domElement.removeEventListener('click', getOrientationDevice);
