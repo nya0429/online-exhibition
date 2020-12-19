@@ -54,7 +54,7 @@ let video2ascii = function (_charset, _asciiMap, options) {
         width = Math.round(w);
         height = Math.round(h);
         let m = setAsciiSize();
-        //start();
+        start();
         return m;
     };
 
@@ -337,7 +337,7 @@ let video2ascii = function (_charset, _asciiMap, options) {
         asciiMesh.instanceColor.needsUpdate = true;
 
     }
-    //start();
+    start();
 }
 
 export { video2ascii };

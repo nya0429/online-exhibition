@@ -58,15 +58,6 @@ function isSmartPhone() {
     }
 }
 
-function getDeviceOrientation(){
-
-    console.log("get Device Orientation start")
-
-    if(isMobile){
-        cameraControls = new DeviceOrientationControls(camera);
-        isMobile = Object.keys(sceneControls.deviceOrientation).length;
-    }
-}
 
 function init() {
 
@@ -89,37 +80,12 @@ function init() {
     renderer.setPixelRatio(window.devicePixelRatio);
     document.body.appendChild(renderer.domElement);
 
-    document.addEventListener('touchstart',getDeviceOrientation())
 
     scene = new THREE.Scene();
 
     document.getElementById("title").innerText = isMobile
 
-    if(!isMobile) {
-
-        sceneControlCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
-        sceneControlCamera.position.set(0.0, 0, 0.01);
-
-        sceneControls = new OrbitControls(sceneControlCamera,renderer.domElement);
-        sceneControls.enablePan = false;
-        sceneControls.enableZoom = false;
-        sceneControls.enableDamping = true;
-        sceneControls.dampingFactor = 0.05;
-        sceneControls.minPolarAngle = Math.PI / 4;
-        sceneControls.maxPolarAngle = Math.PI - sceneControls.minPolarAngle;
-
-        orbitCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
-        orbitCamera.position.set(0, 0, windowHalfWidth);
-
-        //cameraControls = new OrbitControls(camera,renderer.domElement);
-        cameraControls = new OrbitControls(orbitCamera,renderer.domElement);
-        cameraControls.enablePan = false;
-        cameraControls.enableRotate = false;
-        cameraControls.maxDistance = windowHalfWidth;
-        cameraControls.enableDamping = true;
-        cameraControls.dampingFactor = 0.1;
-
-    }
+    initControls();
 
     console.log("isMovile", isMobile)
 
@@ -164,7 +130,53 @@ function init() {
 
     window.addEventListener('resize', onWindowResize, false);
     document.addEventListener('mousemove', onMouseMove, false);
+    renderer.domElement.addEventListener('touchstart', function(){
+        console.log("touch")
+        if(isMobile&&!isGetDeviceOrientation){
+            cameraControls = new DeviceOrientationControls(camera);
+            console.log(cameraControls)
+            isMobile = Object.keys(cameraControls.deviceOrientation).length;
+            isGetDeviceOrientation = isMobile;
+            if(!isMobile && !sceneControls){
+                onWindowResize();
+                initControls();
+            }
+                
+        }
+    },false);
+
     //document.addEventListener('click', onMouseDown, false);
+
+}
+
+function initControls(){
+
+    if(!isMobile) {
+
+        sceneControlCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
+        sceneControlCamera.position.set(0.0, 0, 0.01);
+
+        sceneControls = new OrbitControls(sceneControlCamera,renderer.domElement);
+        sceneControls.enablePan = false;
+        sceneControls.enableZoom = false;
+        sceneControls.enableDamping = true;
+        sceneControls.dampingFactor = 0.05;
+        sceneControls.minPolarAngle = Math.PI / 4;
+        sceneControls.maxPolarAngle = Math.PI - sceneControls.minPolarAngle;
+
+        orbitCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
+        orbitCamera.position.set(0, 0, windowHalfWidth);
+
+        //cameraControls = new OrbitControls(camera,renderer.domElement);
+        cameraControls = new OrbitControls(orbitCamera,renderer.domElement);
+        cameraControls.enablePan = false;
+        cameraControls.enableRotate = false;
+        cameraControls.maxDistance = windowHalfWidth;
+        cameraControls.enableDamping = true;
+        cameraControls.dampingFactor = 0.1;
+
+    }
+
 
 }
 
@@ -183,8 +195,6 @@ function onWindowResize() {
     windowHeight = window.innerHeight;
     windowHalfWidth = windowWidth/2;
     windowHalfHeight = windowHeight/2;
-
-    startVideo();
 
     camera.fov = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -622,32 +632,4 @@ function resizeAsciis(w,h) {
     captureMesh.instanceMatrix.needsUpdate = true;
     textMesh.instanceMatrix.needsUpdate = true;
 
-}
-
-function startVideo() {
-
-    let constraints = {
-        audio: false,
-        video: {
-            facingMode: "user",
-            width: Math.round(windowHalfWidth),
-            height: Math.round(windowHalfHeight),
-        },
-    };
-    navigator.mediaDevices.getUserMedia(constraints).then(gotStream).catch(handleError);
-}
-
-function gotStream(stream) {
-
-
-    console.log(isMobile,cameraControls)
-    
-    window.stream = stream; // make stream available to console
-    video.srcObject = stream;
-    console.log(video.onload)
-    video.play().then().catch();
-
-}
-function handleError(error) {
-    console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
 }
