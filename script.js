@@ -58,11 +58,12 @@ const getOrientationDevice = function(){
     console.log("me")
     cameraControls = new DeviceOrientationControls(camera);
     cameraControls.connect()
-    .then(()=>{
+    .then((value)=>{
         console.log('resolve',cameraControls.enabled)
         console.log(cameraControls.deviceOrientation)
         console.log(cameraControls)
-
+        console.log(value)
+        console.log(value.deviceOrientation)
         isEnableDeviceOrientation = Boolean(cameraControls.deviceOrientation.returnValue);
         if(isEnableDeviceOrientation){
             initMobile();
@@ -70,7 +71,7 @@ const getOrientationDevice = function(){
             initControls()
         }
     })
-    .catch(()=>{
+    .catch((value)=>{
         console.log('reject',cameraControls)
         initControls()
     })
@@ -744,14 +745,14 @@ var DeviceOrientationControls = function ( object, connectEvent ) {
 
 					window.addEventListener( 'orientationchange', onScreenOrientationChangeEvent, false );
                     window.addEventListener( 'deviceorientation', onDeviceOrientationChangeEvent, false );
-                    resolve();
+                    resolve(this);
 
 				}
 
 			} ).catch( function ( error ) {
 
                 console.error( 'THREE.DeviceOrientationControls: Unable to use DeviceOrientation API:', error );
-                reject();
+                reject(this);
                 
 			} );
 
@@ -759,7 +760,7 @@ var DeviceOrientationControls = function ( object, connectEvent ) {
 
 			window.addEventListener( 'orientationchange', onScreenOrientationChangeEvent, false );
             window.addEventListener( 'deviceorientation', onDeviceOrientationChangeEvent, false );
-            resolve();
+            resolve(this);
 
 		}
 
