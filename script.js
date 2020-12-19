@@ -61,9 +61,14 @@ const getOrientationDevice = function(){
     .then(()=>{
         console.log('resolve',cameraControls.deviceOrientation.returnValue)
         console.log(cameraControls.deviceOrientation)
+        console.log(cameraControls)
 
         isEnableDeviceOrientation = Boolean(cameraControls.deviceOrientation.returnValue);
-        initControls()
+        if(isEnableDeviceOrientation){
+            initMobile();
+        }else{
+            initControls()
+        }
     })
     .catch(()=>{
         console.log('reject',cameraControls)
@@ -209,6 +214,13 @@ function onWindowResize() {
         scene.add(asciiMesh)
         cube.scale.set(window.innerWidth, window.innerHeight, window.innerWidth);
         resizeAsciis(window.innerWidth, window.innerHeight);
+
+    }else if(!isEnableDeviceOrientation){
+
+        asciiMesh = effect.setSize(windowWidth, windowHeight);
+        scene.add(asciiMesh)
+        cube.scale.set(windowWidth*2, window.innerHeight*2, window.innerWidth*2);
+        resizeAsciis(window.innerWidth*2, window.innerHeight*2);
 
     }
 
