@@ -59,7 +59,7 @@ const getOrientationDevice = function(){
     cameraControls = new DeviceOrientationControls(camera);
     cameraControls.connect()
     .then(()=>{
-        console.log('resolve',cameraControls)
+        console.log('resolve',cameraControls.deviceOrientation.returnValue)
         isEnableDeviceOrientation = true;
         //cameraControls.deviceOrientation
     })
