@@ -105,7 +105,7 @@ function init() {
     //camera.position.set(0,0,500);
     window.addEventListener("touchstart", function(event) {
         if(isMobile){
-            sceneControls = new DeviceOrientationControls(camera);
+            cameraControls = new DeviceOrientationControls(camera);
             isMobile = Object.keys(sceneControls.deviceOrientation).length;
             }
       });
@@ -282,7 +282,9 @@ function animate() {
     } else {
         renderer.domElement.style.cursor = "default"
     }
-    cameraControls.update();
+    if(cameraControls != null){
+        cameraControls.update();
+    }
     if (!isMobile) {
         sceneControls.update();
         orbitCamera.getWorldPosition(camera.position)
