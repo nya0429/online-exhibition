@@ -59,7 +59,6 @@ const getOrientationDevice = function(){
     cameraControls = new DeviceOrientationControls(camera);
     cameraControls.connect()
     .then((value)=>{
-
         console.log('resolve',cameraControls.enabled)
         console.log(cameraControls.deviceOrientation)
         console.log(cameraControls)
@@ -69,8 +68,7 @@ const getOrientationDevice = function(){
         isEnableDeviceOrientation = true;
         initMobile();
 
-    })
-    .catch(()=>{
+    },(value)=>{
         console.log('reject',cameraControls)
         //initControls();
     })
@@ -187,12 +185,14 @@ function initControls() {
 }
 
 function initMobile() {
-
+    
     asciiMesh = effect.setSize(mobileWidth / 2, mobileHeight / 2);
     scene.add(asciiMesh)
     cube.scale.set(mobileWidth, mobileHeight, mobileWidth);
     resizeAsciis(mobileWidth, mobileHeight);
     animate();
+
+    console.log("initMobile end")
 
 }
 
@@ -671,7 +671,7 @@ function isSmartPhone() {
     }
 }
 
-var DeviceOrientationControls = function ( object, connectEvent ) {
+var DeviceOrientationControls = function ( object) {
 
 	var scope = this;
 	var changeEvent = { type: "change" };
@@ -686,8 +686,6 @@ var DeviceOrientationControls = function ( object, connectEvent ) {
 	this.screenOrientation = 0;
 
 	this.alphaOffset = 0; // radians
-
-	this.connectEvent = connectEvent | null;
 
 	var onDeviceOrientationChangeEvent = function ( event ) {
 
