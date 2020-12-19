@@ -88,12 +88,6 @@ function gotStream(stream) {
     console.log(video.onload)
     video.play().then().catch();
 
-    if(isMobile){
-        sceneControls = new DeviceOrientationControls(camera);
-        isMobile = Object.keys(sceneControls.deviceOrientation).length;
-        }
-    
-
 }
 
 function handleError(error) {
@@ -102,11 +96,19 @@ function handleError(error) {
 
 function init() {
 
+
+
     deg = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
     camera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 1, 10000);
 
     isMobile = isSmartPhone();
     //camera.position.set(0,0,500);
+    window.addEventListener("touchstart", function(event) {
+        if(isMobile){
+            sceneControls = new DeviceOrientationControls(camera);
+            isMobile = Object.keys(sceneControls.deviceOrientation).length;
+            }
+      });
 
     renderer = new THREE.WebGLRenderer({
         depth: false,
