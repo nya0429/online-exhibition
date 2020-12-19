@@ -66,6 +66,7 @@ const getOrientationDevice = function(){
         console.log(value)
         console.log(value.deviceOrientation)
         isEnableDeviceOrientation = Boolean(cameraControls.deviceOrientation.returnValue);
+        isEnableDeviceOrientation = true;
         initMobile();
 
     })
