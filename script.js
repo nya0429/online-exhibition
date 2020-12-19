@@ -103,12 +103,13 @@ function init() {
 
     isMobile = isSmartPhone();
     //camera.position.set(0,0,500);
-    window.addEventListener("touchstart", function(event) {
-        if(isMobile){
-            cameraControls = new DeviceOrientationControls(camera);
-            isMobile = Object.keys(sceneControls.deviceOrientation).length;
-            }
-      });
+
+    // window.addEventListener("touchstart", function(event) {
+    //     if(isMobile){
+    //         cameraControls = new DeviceOrientationControls(camera);
+    //         isMobile = Object.keys(sceneControls.deviceOrientation).length;
+    //         }
+    //   });
 
     renderer = new THREE.WebGLRenderer({
         depth: false,
