@@ -47,6 +47,8 @@ let lightHelper,shadowCameraHelper,spotLight;
 
 
 let deg;
+let initLoad = true;
+
 window.onload = init()
 
 function isSmartPhone() {
@@ -57,18 +59,53 @@ function isSmartPhone() {
     }
 }
 
+function startVideo() {
+
+    let constraints = {
+        audio: false,
+        video: {
+            facingMode: "user",
+            width: Math.round(windowHalfWidth),
+            height: Math.round(windowHalfHeight),
+        },
+    };
+
+    if (window.stream) {
+        window.stream.getTracks().forEach(track => {
+            track.stop();
+
+        });
+    }
+
+    navigator.mediaDevices.getUserMedia(constraints).then(gotStream).catch(handleError);
+
+}
+
+function gotStream(stream) {
+
+    window.stream = stream; // make stream available to console
+    video.srcObject = stream;
+    console.log(video.onload)
+    video.play().then().catch();
+
+    if(isMobile){
+        sceneControls = new DeviceOrientationControls(camera);
+        isMobile = Object.keys(sceneControls.deviceOrientation).length;
+        }
+    
+
+}
+
+function handleError(error) {
+    console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
+}
+
 function init() {
 
     deg = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
     camera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 1, 10000);
 
     isMobile = isSmartPhone();
-    if(isMobile){
-        sceneControls = new DeviceOrientationControls(camera);
-        console.log(sceneControls)
-        isMobile = Object.keys(sceneControls.deviceOrientation).length;
-    }
-
     //camera.position.set(0,0,500);
 
     renderer = new THREE.WebGLRenderer({
@@ -114,6 +151,7 @@ function init() {
         cameraControls.dampingFactor = 0.1;
 
     }
+
     console.log("isMovile", isMobile)
 
     loadCSV();
@@ -176,6 +214,8 @@ function onWindowResize() {
     windowHeight = window.innerHeight;
     windowHalfWidth = windowWidth/2;
     windowHalfHeight = windowHeight/2;
+
+    startVideo();
 
     camera.fov = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -612,3 +652,4 @@ function resizeAsciis(w,h) {
     textMesh.instanceMatrix.needsUpdate = true;
 
 }
+

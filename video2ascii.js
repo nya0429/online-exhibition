@@ -4,6 +4,7 @@ let video2ascii = function (_charset, _asciiMap, options) {
 
     const video = document.getElementById("video");
     const videoTexture = new THREE.VideoTexture(video);
+    this.touchEvent;
     
     const scene = new THREE.Scene();
     const camera = new THREE.Camera();
@@ -53,7 +54,7 @@ let video2ascii = function (_charset, _asciiMap, options) {
         width = Math.round(w);
         height = Math.round(h);
         let m = setAsciiSize();
-        start();
+        //start();
         return m;
     };
 
@@ -158,6 +159,7 @@ let video2ascii = function (_charset, _asciiMap, options) {
 
     }
 
+
     function gotStream(stream) {
         window.stream = stream; // make stream available to console
         video.srcObject = stream;
@@ -167,7 +169,6 @@ let video2ascii = function (_charset, _asciiMap, options) {
         console.log(video.onload)
         video.play().then().catch();
         //await video.play();
-        
         //playVideo(video)
     }
 
@@ -336,7 +337,7 @@ let video2ascii = function (_charset, _asciiMap, options) {
         asciiMesh.instanceColor.needsUpdate = true;
 
     }
-    start();
+    //start();
 }
 
 export { video2ascii };
