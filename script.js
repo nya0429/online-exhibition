@@ -386,13 +386,13 @@ async function loadData() {
         const loader = new BasisTextureLoader();
         loader.setTranscoderPath('https://unpkg.com/three@0.123.0/examples/js/libs/basis/');
         loader.detectSupport(renderer);
-
         function loadTexture(path){
             return new Promise((resolve, reject) => {
                 loader.load(path, function (texture) {
                     texture.encoding = THREE.sRGBEncoding;
                     resolve(texture);
                 }, undefined, function (error) {
+                    console.log(error);
                     reject(new Error(error));
                 });
             });
