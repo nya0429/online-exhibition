@@ -3,7 +3,6 @@ import * as THREE from "https://unpkg.com/three@0.123.0/build/three.module.js";
 import { OrbitControls } from "./OrbitControls.js";
 import { video2ascii } from "./video2ascii.js";
 import { BasisTextureLoader } from 'https://unpkg.com/three@0.123.0/examples/jsm/loaders/BasisTextureLoader.js';
-
 import Stats from "https://unpkg.com/three@0.123.0/examples/jsm/libs/stats.module.js";
 
 let renderer, scene;
@@ -84,12 +83,6 @@ init()
 function init() {
 
     isMobile = isSmartPhone();
-    if (isMobile) {
-        cubeWidth = mobileSize * 2;
-        cubeHeight = mobileSize * 2;
-        cubeHalfWidth = mobileSize;
-        cubeHalfHeight = mobileSize;
-    }
 
     renderer = new THREE.WebGLRenderer({
         depth: false,
@@ -112,8 +105,9 @@ function init() {
     rotateCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
     zoomCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
     scene = new THREE.Scene();
-
-    addLight();
+        // lights
+    mainLight = new THREE.PointLight(0xcccccc, 2, window.innerWidth, 1);
+    scene.add(mainLight);
 
     if (isMobile && isSupportDeviceOrientation) {
         title.innerText = 'touch to allow'
@@ -135,21 +129,6 @@ function init() {
     document.addEventListener('mousemove', onMouseMove, false);
     document.addEventListener('mousedown', comeback, true);
     zoomControls.addEventListener('mousedown', onMouseDown, true);
-
-}
-
-function addLight() {
-
-    // lights
-    mainLight = new THREE.PointLight(0xcccccc, 2, window.innerWidth, 1);
-    scene.add(mainLight);
-    //mainLight.position.x = cubeHalfWidth*0.9;
-    //mainLight.position.y = 60;
-    const ambient = new THREE.AmbientLight(0xffffff, 0.1);
-    scene.add(ambient);
-
-    let a = new THREE.AxesHelper(100);
-    scene.add(a)
 
 }
 
@@ -241,10 +220,12 @@ function comeback(event) {
 }
 function onMouseDown(event) {
 
-    //event.preventDefault();
-    console.log("onMouseDown")
     zoomControls.enabled = true;
     rotateControls.enabled = true;
+
+    if(!asciiMesh.visivle){
+        return;
+    }
 
     raycaster.setFromCamera(mouse, camera);
     const intersection = raycaster.intersectObject(asciiMesh);
@@ -675,6 +656,10 @@ function resizeAsciis(w, h) {
 
 function isSmartPhone() {
     if (navigator.userAgent.match(/iPhone|Android.+Mobile/)) {
+        cubeWidth = mobileSize * 2;
+        cubeHeight = mobileSize * 2;
+        cubeHalfWidth = mobileSize;
+        cubeHalfHeight = mobileSize;
         return true;
     } else {
         return false;

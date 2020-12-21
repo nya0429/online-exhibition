@@ -296,21 +296,21 @@ let video2ascii = function (_charset, _asciiMap, _asciiTexture, options) {
     }
 
     function gotStream(stream) {
+
         window.stream = stream; // make stream available to console
         video.srcObject = stream;
         video.play();
+        asciiMesh.visible = true;
+
         //videoTexture.needsUpdate = true;
     }
 
     function handleError(error) {
+        asciiMesh.visible = false;
         console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
     }
 
     function setAsciiSize() {
-
-        let preWidth = iWidth;
-        let preHeight = iHeight;
-        let prePixel = preWidth * preHeight;
 
         iWidth = Math.round(width * fResolution);
         iHeight = Math.round(height * fResolution / 2);
@@ -319,9 +319,6 @@ let video2ascii = function (_charset, _asciiMap, _asciiTexture, options) {
         oImgData = new Uint8Array(4 * iPixel);
 
         renderer.setSize(iWidth, iHeight);
-
-        //console.log("Size", iWidth, iHeight, "preSize", preWidth, preHeight);
-        //console.log("pixel", iPixel, "prePixel", prePixel);
 
         let textWidth = width / iWidth;
         let plane = new THREE.PlaneBufferGeometry(textWidth, textWidth * 2);
@@ -335,6 +332,7 @@ let video2ascii = function (_charset, _asciiMap, _asciiTexture, options) {
         asciiGeometry.setAttribute('asciiInstanceURL', asciiInstanceURL);
 
         asciiMesh = new THREE.InstancedMesh(asciiGeometry, asciiMaterial, iWidth * iHeight)
+        asciiMesh.visible = false;
 
         let mat4 = new THREE.Matrix4();
         let i;
@@ -364,6 +362,10 @@ let video2ascii = function (_charset, _asciiMap, _asciiTexture, options) {
     this.asciifyImage = (textMesh) => {
 
         if (textMesh == null) {
+            return;
+        }
+
+        if(!asciiMesh.visible){
             return;
         }
 
