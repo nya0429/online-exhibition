@@ -128,7 +128,6 @@ function init() {
     window.addEventListener('resize', onWindowResize, false);
     document.addEventListener('mousemove', onMouseMove, false);
     document.addEventListener('mousedown', comeback, true);
-    zoomControls.addEventListener('mousedown', onMouseDown, true);
 
 }
 
@@ -155,7 +154,7 @@ function initZoomControls() {
     zoomControls.maxDistance = cubeHalfWidth;
     zoomControls.enableDamping = true;
     zoomControls.dampingFactor = 0.1;
-
+    zoomControls.addEventListener('mousedown', onMouseDown, true);
 }
 
 function initMobile() {
@@ -375,7 +374,7 @@ async function loadData() {
         const func = async function () {
             //await createAsciiTexture();
             
-            const texture = await loadAsciiTexture("./basis/font.basis");
+            const texture = await loadAsciiTexture("./basis/test.basis");
             await Promise.all([
                 createText(textTextureID, textAlpha),
                 createEffect(),
@@ -399,7 +398,7 @@ async function loadData() {
         }
 
         async function createCapture(){
-           const tex = await loadTexture("./basis/tmp2.basis");
+           const tex = await loadTexture("./basis/test.basis");
            await createCaptures(captureTextureID)
            captureMesh.material.map = tex;
            captureMesh.material.needsUpdate = true;
