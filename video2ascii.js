@@ -1,10 +1,13 @@
 import * as THREE from "https://unpkg.com/three@0.122.0/build/three.module.js";
 
-let video2ascii = function (_charset, _asciiMap, options) {
+let video2ascii = function (_charset, _asciiMap, _asciiTexture, options) {
+
+    const charset = _charset;
+    const asciiMap = _asciiMap;
+    const asciiTexture = _asciiTexture;
 
     const video = document.getElementById("video");
     const videoTexture = new THREE.VideoTexture(video);
-    this.touchEvent;
 
     const scene = new THREE.Scene();
     const camera = new THREE.Camera();
@@ -14,15 +17,12 @@ let video2ascii = function (_charset, _asciiMap, options) {
         depth: false,
         stencil: false,
     });
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(window.innerWidth/2, window.innerHeight/2);
+
     const webGLCtx = renderer.getContext();
     let oImgData = [];
 
-    const charset = _charset;
-    const asciiMap = _asciiMap;
-
     let asciiMesh;
-    this.asciiMesh = asciiMesh;
     let asciiGeometry = new THREE.InstancedBufferGeometry();
     let asciiInstanceUV = new THREE.InstancedBufferAttribute();
     let asciiInstanceURL = new THREE.InstancedBufferAttribute();
@@ -39,28 +39,76 @@ let video2ascii = function (_charset, _asciiMap, options) {
     let iHeight = 0;
     let iPixel = 0;
 
-    let constraints = {
-        audio: false,
-        video: {
-            facingMode: "user",
-            width: width,
-            height: height,
-        },
-    };
+    createVideoScene();
+    _createAsciiMaterial();
 
-    createScene();
+    this.createAsciiMaterial = async function(asciiTexture){
 
-    this.setSize = function (w, h) {
-        width = Math.round(w);
-        height = Math.round(h);
-        let m = setAsciiSize();
-        start();
-        return m;
-    };
+        let material = new THREE.MeshBasicMaterial({
+            map: asciiTexture,
+            side: THREE.DoubleSide,
+            transparent: true,
+            //color: 0x000000,
+        });
+    
+        let commonChunk = `
+        attribute float asciiInstanceUV;
+        #include <common>
+        `
+        let uvChunk = `
+        #ifdef USE_UV
+        vUv = ( uvTransform * vec3( uv, 1 ) ).xy;
+        vUv.x = (asciiInstanceUV+vUv.x)/`+ charset.length + `.0;
+        #endif
+        `
+        let color_pars_vertex = `
+        #if defined( USE_COLOR ) || defined( USE_INSTANCING_COLOR )
+        varying vec3 vColor;
+        #endif
+        `
+        let color_vertex = `
+        #if defined( USE_COLOR ) || defined( USE_INSTANCING_COLOR )
+        vColor = vec3( 1.0 );
+        #endif
+        #ifdef USE_COLOR
+        vColor.xyz *= color.xyz;
+        #endif
+        #ifdef USE_INSTANCING_COLOR
+        vColor.xyz *= instanceColor.xyz;
+        #endif
+        `
+        let color_pars_fragment = `
+        #ifdef USE_COLOR
+        varying vec3 vColor;
+        #endif
+        `
+        let color_fragment = `
+        #ifdef USE_COLOR
+        diffuseColor.rgb *= vColor;
+        #endif
+        `
+    
+        material.onBeforeCompile = function (shader) {
+    
+            shader.vertexShader = shader.vertexShader
+                .replace('#include <common>', commonChunk)
+                .replace('#include <uv_vertex>', uvChunk)
+                .replace('#include <color_pars_vertex>', color_pars_vertex)
+                .replace('#include <color_vertex>', color_vertex)
+    
+            shader.fragmentShader = shader.fragmentShader
+                .replace('#include <color_pars_fragment>', color_pars_fragment)
+                .replace('#include <color_fragment>', color_fragment)
+        };
 
-    this.init = function (texture) {
-
-            const vs = `
+        return;
+    
+        geometry.setAttribute('textureID', new THREE.InstancedBufferAttribute(new Float32Array(textureID), 1));
+        geometry.setAttribute('alpha', new THREE.InstancedBufferAttribute(new Float32Array(alpha), 1));
+    
+        textMesh = new THREE.InstancedMesh(geometry, material, textureID.length);
+    
+        const vs = `
         #include <common>
         varying vec2 vUv;
 	    uniform mat3 uvTransform;
@@ -82,7 +130,7 @@ let video2ascii = function (_charset, _asciiMap, options) {
         }
         `;
 
-            const fs = `
+        const fs = `
         uniform vec3 diffuse;
         uniform float opacity;
                 
@@ -101,8 +149,8 @@ let video2ascii = function (_charset, _asciiMap, options) {
             #include <logdepthbuf_fragment>
             vec4 texelColor = texture2D( ascii, vUv );
             //texelColor = mapTexelToLinear( texelColor );
-            diffuseColor *= texelColor;
-            diffuseColor.a = 1.0;
+            //diffuseColor *= texelColor;
+            //diffuseColor.a = 1.0;
             #include <color_fragment>
         
             ReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );
@@ -120,66 +168,27 @@ let video2ascii = function (_charset, _asciiMap, options) {
         }
         `;
 
-            let uniforms = THREE.UniformsUtils.clone(THREE.ShaderLib.basic.uniforms)
-            uniforms.map.value = videoTexture;
+        let uniforms = THREE.UniformsUtils.clone(THREE.ShaderLib.basic.uniforms)
+        uniforms.map.value = videoTexture;
+        //videoTexture.needsUpdate = true;
 
-            console.log(texture)
-            uniforms['ascii'] = { value: texture }
+        uniforms['ascii'] = { value: asciiTexture }
+        asciiTexture.needsUpdate = true;
 
-            console.log(uniforms)
-            asciiMaterial = new THREE.ShaderMaterial({
-                side: THREE.DoubleSide,
-                transparent: true,
-                vertexShader: vs,
-                fragmentShader: fs,
-                uniforms: uniforms,
-            });
+        console.log(uniforms)
+        asciiMaterial = new THREE.ShaderMaterial({
+            side: THREE.DoubleSide,
+            transparent: true,
+            vertexShader: vs,
+            fragmentShader: fs,
+            uniforms: uniforms,
+        });
 
-            console.log("finish ascii texture init")
-
-    }
-
-    function start() {
-
-        constraints = {
-            audio: false,
-            video: {
-                facingMode: "user",
-                width: width,
-                height: height,
-            },
-        };
-
-        if (window.stream) {
-            window.stream.getTracks().forEach(track => {
-                track.stop();
-
-            });
-        }
-
-        navigator.mediaDevices.getUserMedia(constraints).then(gotStream).catch(handleError);
+        console.log("finish createAsciiMaterial")
 
     }
 
-
-    function gotStream(stream) {
-        window.stream = stream; // make stream available to console
-        video.srcObject = stream;
-        // video.onload = function(){
-        //     video.play();
-        // }
-        console.log(video.onload)
-        video.play().then().catch();
-        //await video.play();
-        //playVideo(video)
-    }
-
-    function handleError(error) {
-        console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
-    }
-
-    function createScene() {
-
+    function createVideoScene() {
         const vs = `
         precision mediump float;
 
@@ -209,14 +218,12 @@ let video2ascii = function (_charset, _asciiMap, options) {
             fBrightness = inv ? fBrightness:1.0-fBrightness;
             gl_FragColor = vec4(color.rgb,fBrightness);
         }`;
-
         const geometry = new THREE.PlaneBufferGeometry(2, 2);
         let uniforms = {
             map: { value: videoTexture },
             inv: { value: bInvert },
             charsetLength: { value: charset.length - 1 },
         };
-
         const material = new THREE.RawShaderMaterial({
 
             uniforms: uniforms,
@@ -224,10 +231,79 @@ let video2ascii = function (_charset, _asciiMap, options) {
             fragmentShader: fs,
 
         });
-
-        let mesh = new THREE.Mesh(geometry, material);
+        const mesh = new THREE.Mesh(geometry, material);
         scene.add(mesh);
 
+        console.log("finish createVideoScene")
+    }
+
+    function _createAsciiMaterial(){
+
+        asciiMaterial = new THREE.MeshBasicMaterial({
+            map: asciiTexture,
+            side: THREE.DoubleSide,
+            transparent: true,
+        });
+    
+        let commonChunk = `
+        attribute float asciiInstanceUV;
+        #include <common>
+        `
+        let uvChunk = `
+        #ifdef USE_UV
+        vUv = ( uvTransform * vec3( uv, 1 ) ).xy;
+        vUv.x = (asciiInstanceUV+vUv.x)/`+ charset.length + `.0;
+        #endif
+        `
+        let color_fragment = `
+        #ifdef USE_COLOR
+        diffuseColor.rgb *= vColor * diffuseColor.a;
+        diffuseColor.a += 0.9;
+        #endif
+        `
+    
+        asciiMaterial.onBeforeCompile = function (shader) {
+    
+            shader.vertexShader = shader.vertexShader
+                .replace('#include <common>', commonChunk)
+                .replace('#include <uv_vertex>', uvChunk)
+    
+            shader.fragmentShader = shader.fragmentShader
+                .replace('#include <color_fragment>', color_fragment)
+        };
+
+    }
+
+    function start() {
+
+        const constraints = {
+            audio: false,
+            video: {
+                facingMode: "user",
+                width: width,
+                height: height,
+            },
+        };
+
+        if (window.stream) {
+            window.stream.getTracks().forEach(track => {
+                track.stop();
+            });
+        }
+
+        navigator.mediaDevices.getUserMedia(constraints).then(gotStream).catch(handleError);
+
+    }
+
+    function gotStream(stream) {
+        window.stream = stream; // make stream available to console
+        video.srcObject = stream;
+        video.play();
+        //videoTexture.needsUpdate = true;
+    }
+
+    function handleError(error) {
+        console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
     }
 
     function setAsciiSize() {
@@ -244,8 +320,8 @@ let video2ascii = function (_charset, _asciiMap, options) {
 
         renderer.setSize(iWidth, iHeight);
 
-        console.log("Size", iWidth, iHeight, "preSize", preWidth, preHeight);
-        console.log("pixel", iPixel, "prePixel", prePixel);
+        //console.log("Size", iWidth, iHeight, "preSize", preWidth, preHeight);
+        //console.log("pixel", iPixel, "prePixel", prePixel);
 
         let textWidth = width / iWidth;
         let plane = new THREE.PlaneBufferGeometry(textWidth, textWidth * 2);
@@ -277,6 +353,14 @@ let video2ascii = function (_charset, _asciiMap, options) {
 
     }
 
+    this.setSize = function (w, h) {
+        width = Math.round(w);
+        height = Math.round(h);
+        let m = setAsciiSize();
+        start();
+        return m;
+    };
+
     this.asciifyImage = (textMesh) => {
 
         if (textMesh == null) {
@@ -284,7 +368,6 @@ let video2ascii = function (_charset, _asciiMap, options) {
         }
 
         renderer.render(scene, camera);
-
         webGLCtx.readPixels(0, 0, webGLCtx.drawingBufferWidth, webGLCtx.drawingBufferHeight, webGLCtx.RGBA, webGLCtx.UNSIGNED_BYTE, oImgData);
         let tmpMap = JSON.parse(JSON.stringify(asciiMap));
 
@@ -339,7 +422,6 @@ let video2ascii = function (_charset, _asciiMap, options) {
         asciiMesh.instanceColor.needsUpdate = true;
 
     }
-    start();
     console.log("finish video2ascii create")
 }
 

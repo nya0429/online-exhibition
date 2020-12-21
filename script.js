@@ -1,14 +1,15 @@
-import * as THREE from "https://unpkg.com/three@0.122.0/build/three.module.js";
+import * as THREE from "https://unpkg.com/three@0.123.0/build/three.module.js";
 //import * as THREE from "./node_modules/three/build/three.module.js";
-import { OrbitControls } from "https://unpkg.com/three@0.122.0/examples/jsm/controls/OrbitControls.js";
-//import { DeviceOrientationControls } from "./DeviceOrientationControls.js";
-//import { DeviceOrientationControls } from "https://unpkg.com/three@0.122.0/examples/jsm/controls/DeviceOrientationControls.js";
+import { OrbitControls } from "./OrbitControls.js";
 import { video2ascii } from "./video2ascii.js";
-import Stats from "https://unpkg.com/three@0.122.0/examples/jsm/libs/stats.module.js";
+import { BasisTextureLoader } from 'https://unpkg.com/three@0.123.0/examples/jsm/loaders/BasisTextureLoader.js';
 
-let camera, rotateControls, zoomControls, cube;
-let zoomCamera, rotateCamera;
+import Stats from "https://unpkg.com/three@0.123.0/examples/jsm/libs/stats.module.js";
+
 let renderer, scene;
+let camera,zoomCamera, rotateCamera;
+let rotateControls, zoomControls;
+let cube, pickplane,mainLight;
 let effect;
 
 const DataURL = "./online_exhibition_list.csv"
@@ -17,8 +18,6 @@ const regExp = new RegExp(marks, "g");
 
 const displayURLs = [];
 const linkURLs = [];
-
-const fontsize = 256;
 
 let stats;
 let charset = ".-_:~/TrJ?1=v7LuctxiYjlszofInyZC2FeV34aEAwUkHXbhp96G5#SPOqQdgK8mD0R&BMNW"
@@ -29,17 +28,15 @@ let textMesh;
 let captureMesh;
 
 const textBoxWidth = 80;
-const textPerRow = 16;
+const textPerRow = 20;
 const textWidth = textBoxWidth / textPerRow;
 const textHeight = textWidth * 2;
 const textLineHeight = textWidth * 2;
+const captureWidth = 60;
+const areaWidth = 120;
+const areaHeight = 120;
 
-let isMobile = false;
-let isSupportDeviceOrientation = false;
-let isEnableDeviceOrientation = false;
-
-
-const mobileSize = Math.max(window.innerHeight,window.innerWidth);
+const mobileSize = Math.max(window.innerHeight, window.innerWidth);
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2(1, 1);
 
@@ -48,91 +45,103 @@ let cubeHeight = window.innerHeight;
 let cubeHalfWidth = cubeWidth / 2;
 let cubeHalfHeight = cubeHeight / 2;
 
-let lightHelper, shadowCameraHelper, spotLight;
-let deg;
-
 const title = document.getElementById('title');
 
-const getOrientationDevice = function(){
-    console.log("me")
-    rotateControls = new DeviceOrientationControls(rotateCamera);
-    rotateControls.connect()
-    .then((value)=>{
-        console.log('resolve',rotateControls.enabled)
-        console.log(rotateControls.deviceOrientation)
-        console.log(rotateControls)
-        console.log(value)
-        //console.log(value.deviceOrientation)
-        isEnableDeviceOrientation = Boolean(rotateControls.deviceOrientation.returnValue);
-        isEnableDeviceOrientation = true;
-        initMobile();
+let isMobile = false;
+let isEnableDeviceOrientation = false;
+const isSupportDeviceOrientation = Boolean(window.DeviceOrientationEvent);
 
-    },(value)=>{
-        console.log('reject',rotateControls)
-        //initControls();
-    })
-    title.innerText = "It's all here."
-    renderer.domElement.removeEventListener('click', getOrientationDevice);
+async function setDeviceOrientation() {
+
+    async function getDeviceOrientation() {
+        console.log("getDeviceOrientation start")
+        rotateControls = new DeviceOrientationControls(rotateCamera);
+        await rotateControls.connect()
+            .then((value) => {
+                console.log(rotateControls)
+                isEnableDeviceOrientation = Boolean(rotateControls.deviceOrientation.returnValue);
+                isEnableDeviceOrientation = true;
+                initZoomControls();
+            }, (value) => {
+                initZoomControls();
+                initRotateControls();
+            })
+        title.innerText = " It's all here. "
+        console.log("getDeviceOrientation end")
+    }
+
+    const awaitForClick = (target) => {
+        return new Promise(resolve => {
+            target.addEventListener("click", resolve, { once: true });
+        });
+    };
+
+    await awaitForClick(renderer.domElement).then(getDeviceOrientation)
+    console.log("setDeviceOrientation end")
 }
 
 init()
 function init() {
 
     isMobile = isSmartPhone();
-    if(isMobile){
-        cubeWidth = mobileSize*2;
-        cubeHeight = mobileSize*2;
+    if (isMobile) {
+        cubeWidth = mobileSize * 2;
+        cubeHeight = mobileSize * 2;
         cubeHalfWidth = mobileSize;
         cubeHalfHeight = mobileSize;
     }
-    isSupportDeviceOrientation = Boolean(window.DeviceOrientationEvent);
 
     renderer = new THREE.WebGLRenderer({
         depth: false,
         stencil: false,
         antialias: true,
     });
+
     renderer.domElement.id = "background"
     renderer.domElement.style.position = "absolute"
     renderer.domElement.style.left = "0px"
     renderer.domElement.style.top = "0px"
-    renderer.domElement.style.zIndex = "-1"
+    renderer.domElement.style.zIndex = "-2"
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     document.body.appendChild(renderer.domElement);
 
-    deg = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
+    const deg = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
     camera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
+    //camera.rotateX(Math.PI / 2)
     rotateCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
     zoomCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
-
     scene = new THREE.Scene();
 
+    addLight();
+
     if (isMobile && isSupportDeviceOrientation) {
-        renderer.domElement.addEventListener('click', getOrientationDevice, false);
         title.innerText = 'touch to allow'
+        Promise.all([setDeviceOrientation(), loadData()])
+            .then(() => {
+                initMobile();
+                animate();
+            })
     } else {
         initZoomControls();
-        initRotateControls()
+        initRotateControls();
+        loadData();
     }
-
-    loadData();
 
     stats = new Stats();
     document.body.appendChild(stats.dom);
 
-    addLight();
-
     window.addEventListener('resize', onWindowResize, false);
     document.addEventListener('mousemove', onMouseMove, false);
-    //document.addEventListener('click', onMouseDown, false);
+    document.addEventListener('mousedown', comeback, true);
+    zoomControls.addEventListener('mousedown', onMouseDown, true);
 
 }
 
 function addLight() {
 
     // lights
-    let mainLight = new THREE.PointLight(0xcccccc, 2, window.innerWidth, 2);
+    mainLight = new THREE.PointLight(0xcccccc, 2, window.innerWidth, 1);
     scene.add(mainLight);
     //mainLight.position.x = cubeHalfWidth*0.9;
     //mainLight.position.y = 60;
@@ -141,29 +150,6 @@ function addLight() {
 
     let a = new THREE.AxesHelper(100);
     scene.add(a)
-
-    spotLight = new THREE.SpotLight(0xffffff, 1);
-    spotLight.position.set(window.innerWidth / 2, 40, 35);
-    spotLight.angle = Math.PI / 4;
-    spotLight.penumbra = 0.1;
-    spotLight.decay = 2;
-    spotLight.distance = 200;
-
-    spotLight.castShadow = true;
-    spotLight.shadow.mapSize.width = 512;
-    spotLight.shadow.mapSize.height = 512;
-    spotLight.shadow.camera.near = 10;
-    spotLight.shadow.camera.far = 2000;
-    spotLight.shadow.focus = 1;
-    //scene.add( spotLight );
-
-    lightHelper = new THREE.SpotLightHelper(spotLight);
-    //scene.add( lightHelper );
-
-    shadowCameraHelper = new THREE.CameraHelper(spotLight.shadow.camera);
-    //scene.add( shadowCameraHelper );
-
-
 
 }
 
@@ -176,12 +162,12 @@ function initRotateControls() {
     rotateControls.enableZoom = false;
     rotateControls.enableDamping = true;
     rotateControls.dampingFactor = 0.05;
-    rotateControls.minPolarAngle = Math.PI / 4;
+    rotateControls.minPolarAngle = Math.PI / 3;
     rotateControls.maxPolarAngle = Math.PI - rotateControls.minPolarAngle;
 
 }
 
-function initZoomControls(){
+function initZoomControls() {
 
     zoomCamera.position.set(0, 0, cubeHalfWidth);
     zoomControls = new OrbitControls(zoomCamera, renderer.domElement);
@@ -194,14 +180,12 @@ function initZoomControls(){
 }
 
 function initMobile() {
-    
+
+    mainLight.distance = cubeWidth;
     asciiMesh = effect.setSize(cubeHalfWidth, cubeHalfHeight);
     scene.add(asciiMesh)
     cube.scale.set(cubeWidth, cubeHeight, cubeWidth);
     resizeAsciis(cubeWidth, cubeHeight);
-    initZoomControls();
-    animate();
-    console.log("initMobile end")
 
 }
 
@@ -219,40 +203,58 @@ function onWindowResize() {
     rotateCamera.aspect = camera.aspect;
     rotateCamera.updateProjectionMatrix();
 
-    scene.remove(asciiMesh)
-
     if (!isMobile) {
 
         cubeWidth = window.innerWidth;
         cubeHeight = window.innerHeight;
         cubeHalfWidth = cubeWidth / 2;
         cubeHalfHeight = cubeHeight / 2;
+
+        scene.remove(asciiMesh)
         asciiMesh = effect.setSize(cubeHalfWidth, cubeHalfHeight);
         scene.add(asciiMesh)
-        cube.scale.set(cubeWidth, cubeHeight, cubeWidth);
-        resizeAsciis(cubeWidth, cubeHeight);
 
+        cube.scale.set(cubeWidth, cubeHeight, cubeWidth);
+        pickplane.scale.set(cubeHalfWidth, cubeHalfHeight);
+        pickplane.position.set(0, 0, -cubeHalfWidth);
+
+        resizeAsciis(cubeWidth, cubeHeight);
         zoomControls.maxDistance = cubeHalfWidth;
+        mainLight.distance = cubeWidth;
 
     }
 
     renderer.setSize(window.innerWidth, window.innerHeight);
+    console.log("finish onResize")
 
 }
 
 function onMouseMove(event) {
 
-    event.preventDefault();
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
 
 }
+function comeback(event) {
+    zoomControls.enabled = true;
+    rotateControls.enabled = true;
+}
+function onMouseDown(event) {
 
-function onMouseDown() {
+    //event.preventDefault();
+    console.log("onMouseDown")
+    zoomControls.enabled = true;
+    rotateControls.enabled = true;
 
     raycaster.setFromCamera(mouse, camera);
     const intersection = raycaster.intersectObject(asciiMesh);
     if (intersection.length > 0) {
+
+        zoomControls.enabled = false;
+        if (!isEnableDeviceOrientation) {
+            rotateControls.enabled = false;
+        }
+
         const instanceId = intersection[0].instanceId;
         const urlID = asciiMesh.geometry.attributes.asciiInstanceURL.getX(instanceId);
         const charID = asciiMesh.geometry.attributes.asciiInstanceUV.getX(instanceId);
@@ -267,22 +269,12 @@ function animate() {
 
     stats.begin();
 
-    lightHelper.update();
-    shadowCameraHelper.update();
-
-    raycaster.setFromCamera(mouse, camera);
-    const intersection = raycaster.intersectObject(asciiMesh);
     effect.asciifyImage(textMesh);
-    if (intersection.length > 0) {
-        const instanceId = intersection[0].instanceId;
-        renderer.domElement.style.cursor = "pointer"
-        //const urlID = asciiMesh.geometry.attributes.asciiInstanceURL.getX(instanceId);
-        //title.innerText = displayURLs[urlID];
-        //console.log(instanceId);
-        //textMesh.setColorAt( instanceId, color.setRGB(255,0,0) );
-        //textMesh.instanceColor.needsUpdate = true;
-    } else {
-        renderer.domElement.style.cursor = "default"
+
+    if (!isMobile) {
+        raycaster.setFromCamera(mouse, camera);
+        const intersection = raycaster.intersectObject(pickplane);
+        renderer.domElement.style.cursor = intersection.length > 0 ? "pointer" : "default";
     }
 
     rotateControls.update();
@@ -292,10 +284,10 @@ function animate() {
 
     if (isEnableDeviceOrientation) {
         rotateCamera.getWorldQuaternion(scene.quaternion)
-        scene.quaternion.inverse();
-    }else{
+        scene.quaternion.invert();
+    } else {
         rotateCamera.getWorldQuaternion(scene.quaternion)
-        scene.quaternion.inverse();
+        scene.quaternion.invert();
     }
 
     renderer.render(scene, camera);
@@ -323,9 +315,9 @@ function loadCSV() {
     });
 }
 
-function loadData() {
+async function loadData() {
 
-    return loadCSV().then((csvstr) => {
+    async function load(csvstr) {
 
         for (let i = 0; i < charset.length; i++) {
             asciiMap[i] = [];
@@ -335,6 +327,8 @@ function loadData() {
         let asciinum = 0;
         let captureTextureID = [];
         let captureURL = [];
+        let captureURL2 = [];
+
         let textAlpha = [];
 
         for (let i = 0; i < urls.length; i++) {
@@ -348,6 +342,7 @@ function loadData() {
 
             captureTextureID.push(i);
             captureURL.push("./img/" + displayURL.replace(regExp, '') + ".png");
+            captureURL2.push("./basis/" + displayURL.replace(regExp, '') + ".basis");
 
             for (let j = 0; j < displayURL.length; j++) {
 
@@ -372,19 +367,20 @@ function loadData() {
 
         console.log(asciinum);
 
-        for (let i = charset.length; i > 0; i--) {
-            let num = asciiMap[i - 1].length;
-            if (num == 0) {
-                charset = charset.replace(charset[i - 1], "");
-            }
-        }
+        // for (let i = charset.length; i > 0; i--) {
+        //     let num = asciiMap[i - 1].length;
+        //     if (num == 0) {
+        //         charset = charset.replace(charset[i - 1], "");
+        //     }
+        // }
+        // asciiMap = asciiMap.filter(el => el.length > 0)
 
-        asciiMap = asciiMap.filter(el => el.length > 0)
-
-        const createEffect = async function(){
-            effect = new video2ascii(charset, asciiMap, { color: true, invert: true })
+        async function createEffect() {
+            effect = new video2ascii(charset, asciiMap, asciiTexture,{
+                color: true, invert: true,
+                resolution: isMobile ? 0.08 : 0.12
+            })
         }
-        createEffect();
 
         let textTextureID = [];
         let displayURL;
@@ -396,30 +392,56 @@ function loadData() {
         }
 
         const func = async function () {
-            await createAsciiTexture();
-            createText(textTextureID, textAlpha);
-            effect.init(asciiTexture);
+            //await createAsciiTexture();
+            
+            const texture = await loadAsciiTexture("./basis/font.basis");
+            await Promise.all([
+                createText(textTextureID, textAlpha),
+                createEffect(),
+                //effect.createAsciiMaterial(texture)
+            ]);
         }
 
-        Promise.all([
-            createWhiteCube(),
-            createCaptures(captureTextureID),
-            func()])
-            .then(function (values) {
-                if (!isMobile) {
-                    onWindowResize();
-                    animate();
-                }
-                console.log(values); // => [1, 2, 3]
+        const loader = new BasisTextureLoader();
+        loader.setTranscoderPath('https://unpkg.com/three@0.123.0/examples/js/libs/basis/');
+        loader.detectSupport(renderer);
+
+        function loadTexture(path){
+            return new Promise((resolve, reject) => {
+                loader.load(path, function (texture) {
+                    texture.encoding = THREE.sRGBEncoding;
+                    resolve(texture);
+                }, undefined, function (error) {
+                    reject(new Error(error));
+                });
             });
+        }
 
-        createCaptureTexture(captureURL, (canvas) => {
-            let texture = new THREE.CanvasTexture(canvas);
-            captureMesh.material.map = texture;
-            captureMesh.material.needsUpdate = true;
-        })
+        async function createCapture(){
+           const tex = await loadTexture("./basis/tmp2.basis");
+           await createCaptures(captureTextureID)
+           captureMesh.material.map = tex;
+           captureMesh.material.needsUpdate = true;
+        }
 
-    });
+        await Promise.all([
+            createWhiteCube(),
+            createCapture(),
+            func()]);
+
+        if(!isMobile){
+            onWindowResize();
+            animate();
+        }else if(!isSupportDeviceOrientation){
+            initMobile();
+            animate();
+        }
+
+    };
+
+    await loadCSV().then((csvstr) => {
+        load(csvstr)
+    })
 }
 
 async function createWhiteCube() {
@@ -427,14 +449,19 @@ async function createWhiteCube() {
     const material = new THREE.MeshPhongMaterial({ color: 0xffffff, side: THREE.DoubleSide });
     cube = new THREE.Mesh(geometry, material);
     scene.add(cube);
-    console.log("finish create whitecube");
+
+    const geometry2 = new THREE.PlaneBufferGeometry(1, 1);
+    const material2 = new THREE.MeshPhongMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+    pickplane = new THREE.Mesh(geometry2, material2);
+    scene.add(pickplane);
+    //console.log("finish create whitecube");
 }
 
 async function createCaptures(textureID) {
 
-    let plane = new THREE.PlaneBufferGeometry(60, 60 * 3 / 4);
+    let plane = new THREE.PlaneBufferGeometry(captureWidth, captureWidth * 3 / 4);
 
-    plane.translate(0, 30, 0)
+    plane.translate(0, captureWidth/2, 0)
     let geometry = new THREE.InstancedBufferGeometry();
     THREE.BufferGeometry.prototype.copy.call(geometry, plane);
 
@@ -451,7 +478,9 @@ async function createCaptures(textureID) {
     let uvChunk = `
     #ifdef USE_UV
     vUv = ( uvTransform * vec3( uv, 1 ) ).xy;
-    vUv.x = (textureID+vUv.x)/`+ textureID.length + `.0;
+    vUv.x = (mod(textureID, 4.0)+vUv.x)/4.0;
+    vUv.y = 1.0-(floor(textureID/4.0)+vUv.y)/`+ Math.ceil(textureID.length/4) + `.0;
+
     #endif
     `
     let beginVertexChunk = `
@@ -558,69 +587,35 @@ async function createText(textureID, alpha) {
 
 }
 
-function createCaptureTexture(captureURL, callback) {
+function loadAsciiTexture(path){
 
-    let canvas = document.createElement('canvas');
-    canvas.width = 256 * captureURL.length;
-    canvas.height = 192;
-    let ctx = canvas.getContext('2d');
+    const loader = new BasisTextureLoader();
+    loader.setTranscoderPath('https://unpkg.com/three@0.123.0/examples/js/libs/basis/');
+    loader.detectSupport(renderer);
 
-    let i = 0;
-    let img = new Image();
-    img.onload = () => {
-        ctx.drawImage(img, 0, 0, 256, 192, i * 256, 0, 256, 192);
-        i++;
-        if (i < captureURL.length) {
-            img.src = captureURL[i];
-        } else {
-            callback(canvas);
-        }
-    }
-    img.src = captureURL[0];
-}
-
-async function createAsciiTexture() {
-
-    const oCanvas = document.createElement('canvas');
-    const oCtx = oCanvas.getContext('2d');
-    oCtx.font = fontsize + "px 'Roboto Mono', monospace";
-    const textMetrics = oCtx.measureText(charset);
-    const actualWidth = Math.abs(textMetrics.actualBoundingBoxRight) + Math.abs(textMetrics.actualBoundingBoxLeft);
-    const actualHeight = Math.abs(textMetrics.actualBoundingBoxAscent) + Math.abs(textMetrics.actualBoundingBoxDescent);
-
-    console.log(charset.length)
-    oCanvas.width = actualWidth;
-    oCanvas.height = actualHeight;
-
-    //console.log(textMetrics)
-    //console.log(oCanvas.width,oCanvas.height)
-    //oCtx.fillStyle = "blue";
-    //oCtx.fillRect(0, 0, oCanvas.width, oCanvas.height);
-
-    oCtx.font = fontsize + "px 'Roboto Mono', monospace";
-    oCtx.fillStyle = "rgb(255, 255, 255)";
-    oCtx.textBaseline = "bottom";
-    //oCtx.textAlign = "left";
-    oCtx.fillText(charset, 0, oCanvas.height, oCanvas.width);
-    asciiTexture = new THREE.CanvasTexture(oCanvas);
-    asciiTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    asciiTexture.minFilter = THREE.NearestMipmapLinearFilter;
-    //effect.init(asciiTexture);
-    //document.body.appendChild(oCanvas)
-    console.log("finish create AsciiTexture");
-
+    return new Promise((resolve, reject) => {
+        loader.load(path, function (texture) {
+            texture.encoding = THREE.sRGBEncoding;
+            asciiTexture = texture;
+            resolve(texture);
+        }, undefined, function (error) {
+            reject(new Error(error));
+        });
+    });
 }
 
 function resizeAsciis(w, h) {
 
     const captureSum = displayURLs.length;
     const numPerWall = Math.ceil(captureSum / 3);
-    const wallWidth = w;
-    const wallHeight = h;
+    const wallWidth = w*0.92;
+    const wallHeight = h*0.92;
     const halfW = wallWidth / 2;
     const halfH = wallHeight / 2;
+    const depth = w/2;
 
-    const tmpWallHeight = wallHeight * 2 / 3;
+    //
+    const tmpWallHeight = wallHeight * areaWidth / areaHeight;
     let edge = Math.floor(Math.sqrt(tmpWallHeight * wallWidth / numPerWall));
     let numPerWidth = Math.floor(wallWidth / edge);
     let numPerHeight = Math.floor(tmpWallHeight / edge);
@@ -643,7 +638,7 @@ function resizeAsciis(w, h) {
 
     let translateMtx = new THREE.Matrix4();
     let rotateMtx = new THREE.Matrix4();
-    let scaleMtx = new THREE.Matrix4().makeScale(edge / 100, edge / 100, 1);
+    let scaleMtx = new THREE.Matrix4().makeScale(edge / areaWidth, edge / areaWidth, 1);
 
     let wall, index, y;
     let counter = 0;
@@ -655,7 +650,7 @@ function resizeAsciis(w, h) {
         y = Math.floor(index / numPerWidth);
 
         rotateMtx.makeRotationY(Math.PI / 2 * (wall + 1));
-        translateMtx.makeTranslation((index % numPerWidth) * spaceW - halfW + paddingX, halfH - paddingY - y * spaceH, -halfW);
+        translateMtx.makeTranslation((index % numPerWidth) * spaceW - halfW + paddingX, halfH - paddingY - y * spaceH, -depth);
         matrix.multiply(rotateMtx);
         matrix.multiply(translateMtx);
         matrix.multiply(scaleMtx);
@@ -686,156 +681,156 @@ function isSmartPhone() {
     }
 }
 
-var DeviceOrientationControls = function ( object) {
+var DeviceOrientationControls = function (object) {
 
-	var scope = this;
-	var changeEvent = { type: "change" };
-	var EPS = 0.000001;
+    var scope = this;
+    var changeEvent = { type: "change" };
+    var EPS = 0.000001;
 
-	this.object = object;
-	this.object.rotation.reorder( 'YXZ' );
+    this.object = object;
+    this.object.rotation.reorder('YXZ');
 
-	this.enabled = false;
+    this.enabled = false;
 
-	this.deviceOrientation = {};
-	this.screenOrientation = 0;
+    this.deviceOrientation = {};
+    this.screenOrientation = 0;
 
-	this.alphaOffset = 0; // radians
+    this.alphaOffset = 0; // radians
 
-	var onDeviceOrientationChangeEvent = function ( event ) {
+    var onDeviceOrientationChangeEvent = function (event) {
 
-		scope.deviceOrientation = event;
+        scope.deviceOrientation = event;
 
-	};
+    };
 
-	var onScreenOrientationChangeEvent = function () {
+    var onScreenOrientationChangeEvent = function () {
 
-		scope.screenOrientation = window.orientation || 0;
+        scope.screenOrientation = window.orientation || 0;
 
-	};
+    };
 
-	// The angles alpha, beta and gamma form a set of intrinsic Tait-Bryan angles of type Z-X'-Y''
+    // The angles alpha, beta and gamma form a set of intrinsic Tait-Bryan angles of type Z-X'-Y''
 
-	var setObjectQuaternion = function () {
+    var setObjectQuaternion = function () {
 
-		var zee = new THREE.Vector3( 0, 0, 1 );
+        var zee = new THREE.Vector3(0, 0, 1);
 
-		var euler = new THREE.Euler();
+        var euler = new THREE.Euler();
 
-		var q0 = new THREE.Quaternion();
+        var q0 = new THREE.Quaternion();
 
-		var q1 = new THREE.Quaternion( - Math.sqrt( 0.5 ), 0, 0, Math.sqrt( 0.5 ) ); // - PI/2 around the x-axis
+        var q1 = new THREE.Quaternion(- Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)); // - PI/2 around the x-axis
 
-		return function ( quaternion, alpha, beta, gamma, orient ) {
+        return function (quaternion, alpha, beta, gamma, orient) {
 
-			euler.set( beta, alpha, - gamma, 'YXZ' ); // 'ZXY' for the device, but 'YXZ' for us
+            euler.set(beta, alpha, - gamma, 'YXZ'); // 'ZXY' for the device, but 'YXZ' for us
 
-			quaternion.setFromEuler( euler ); // orient the device
+            quaternion.setFromEuler(euler); // orient the device
 
-			quaternion.multiply( q1 ); // camera looks out the back of the device, not the top
+            quaternion.multiply(q1); // camera looks out the back of the device, not the top
 
-			quaternion.multiply( q0.setFromAxisAngle( zee, - orient ) ); // adjust for screen orientation
+            quaternion.multiply(q0.setFromAxisAngle(zee, - orient)); // adjust for screen orientation
 
-		};
+        };
 
-	}();
+    }();
 
-	this.connect = function(){
-        
+    this.connect = function () {
+
         return new Promise((resolve, reject) => {
 
-		onScreenOrientationChangeEvent(); // run once on load
+            onScreenOrientationChangeEvent(); // run once on load
 
-		// iOS 13+
+            // iOS 13+
 
-		if ( window.DeviceOrientationEvent !== undefined && typeof window.DeviceOrientationEvent.requestPermission === 'function' ) {
+            if (window.DeviceOrientationEvent !== undefined && typeof window.DeviceOrientationEvent.requestPermission === 'function') {
 
-			window.DeviceOrientationEvent.requestPermission().then( function ( response ) {
+                window.DeviceOrientationEvent.requestPermission().then(function (response) {
 
-				if ( response == 'granted' ) {
+                    if (response == 'granted') {
 
-					window.addEventListener( 'orientationchange', onScreenOrientationChangeEvent, false );
-                    window.addEventListener( 'deviceorientation', onDeviceOrientationChangeEvent, false );
-                    resolve(this);
+                        window.addEventListener('orientationchange', onScreenOrientationChangeEvent, false);
+                        window.addEventListener('deviceorientation', onDeviceOrientationChangeEvent, false);
+                        resolve(this);
 
-				}
+                    }
 
-			} ).catch( function ( error ) {
+                }).catch(function (error) {
 
-                console.error( 'THREE.DeviceOrientationControls: Unable to use DeviceOrientation API:', error );
-                reject(this);
-                
-			} );
+                    console.error('THREE.DeviceOrientationControls: Unable to use DeviceOrientation API:', error);
+                    reject(this);
 
-		} else {
+                });
 
-			window.addEventListener( 'orientationchange', onScreenOrientationChangeEvent, false );
-            window.addEventListener( 'deviceorientation', onDeviceOrientationChangeEvent, false );
-            resolve(this);
+            } else {
 
-		}
+                window.addEventListener('orientationchange', onScreenOrientationChangeEvent, false);
+                window.addEventListener('deviceorientation', onDeviceOrientationChangeEvent, false);
+                resolve(this);
 
-        scope.enabled = true;
+            }
 
-    });
-}
+            scope.enabled = true;
 
-	this.disconnect = function () {
+        });
+    }
 
-		window.removeEventListener( 'orientationchange', onScreenOrientationChangeEvent, false );
-		window.removeEventListener( 'deviceorientation', onDeviceOrientationChangeEvent, false );
+    this.disconnect = function () {
 
-		scope.enabled = false;
+        window.removeEventListener('orientationchange', onScreenOrientationChangeEvent, false);
+        window.removeEventListener('deviceorientation', onDeviceOrientationChangeEvent, false);
 
-	};
+        scope.enabled = false;
 
-	this.update = ( function () {
+    };
 
-		var lastQuaternion = new THREE.Quaternion();
+    this.update = (function () {
 
-		return function () {
+        var lastQuaternion = new THREE.Quaternion();
 
-			if ( scope.enabled === false ) return;
+        return function () {
 
-			var device = scope.deviceOrientation;
+            if (scope.enabled === false) return;
 
-			if ( device ) {
+            var device = scope.deviceOrientation;
 
-				var alpha = device.alpha ? THREE.MathUtils.degToRad( device.alpha ) + scope.alphaOffset : 0; // Z
+            if (device) {
 
-				var beta = device.beta ? THREE.MathUtils.degToRad( device.beta ) : 0; // X'
+                var alpha = device.alpha ? THREE.MathUtils.degToRad(device.alpha) + scope.alphaOffset : 0; // Z
 
-				var gamma = device.gamma ? THREE.MathUtils.degToRad( device.gamma ) : 0; // Y''
+                var beta = device.beta ? THREE.MathUtils.degToRad(device.beta) : 0; // X'
 
-				var orient = scope.screenOrientation ? THREE.MathUtils.degToRad( scope.screenOrientation ) : 0; // O
+                var gamma = device.gamma ? THREE.MathUtils.degToRad(device.gamma) : 0; // Y''
 
-				setObjectQuaternion( scope.object.quaternion, alpha, beta, gamma, orient );
+                var orient = scope.screenOrientation ? THREE.MathUtils.degToRad(scope.screenOrientation) : 0; // O
 
-				if ( 8 * ( 1 - lastQuaternion.dot( scope.object.quaternion ) ) > EPS ) {
+                setObjectQuaternion(scope.object.quaternion, alpha, beta, gamma, orient);
 
-					lastQuaternion.copy( scope.object.quaternion );
-					scope.dispatchEvent( changeEvent );
+                if (8 * (1 - lastQuaternion.dot(scope.object.quaternion)) > EPS) {
 
-				}
+                    lastQuaternion.copy(scope.object.quaternion);
+                    scope.dispatchEvent(changeEvent);
 
-			}
+                }
 
-		};
+            }
+
+        };
 
 
-	} )();
+    })();
 
-	this.dispose = function () {
+    this.dispose = function () {
 
-		scope.disconnect();
+        scope.disconnect();
 
-	};
+    };
 
-	//this.connect();
+    //this.connect();
 
 };
 
-DeviceOrientationControls.prototype = Object.create( THREE.EventDispatcher.prototype );
+DeviceOrientationControls.prototype = Object.create(THREE.EventDispatcher.prototype);
 DeviceOrientationControls.prototype.constructor = DeviceOrientationControls;
 
 export { DeviceOrientationControls };
