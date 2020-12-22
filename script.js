@@ -118,12 +118,13 @@ function init() {
 
     if (isMobile && isSupportDeviceOrientation) {
         title.innerText = 'touch to allow'
-        Promise.all([setDeviceOrientation(), loadData()])
-            .then(() => {
-                console.log("then")
-                initMobile();
-                animate();
-            })
+        setDeviceOrientation()
+        .then(loadData())
+        .then(() => {
+            console.log("then")
+            initMobile();
+            animate();
+        });
     } else {
         initZoomControls();
         initRotateControls();
