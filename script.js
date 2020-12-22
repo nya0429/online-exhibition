@@ -131,6 +131,7 @@ function initRotateControls() {
     rotateControls.dampingFactor = 0.05;
     rotateControls.minPolarAngle = Math.PI / 3;
     rotateControls.maxPolarAngle = Math.PI - rotateControls.minPolarAngle;
+    rotateControls.addEventListener('start', comeback, true);
 
 }
 
@@ -144,6 +145,8 @@ function initZoomControls() {
     zoomControls.enableDamping = true;
     zoomControls.dampingFactor = 0.1;
     zoomControls.addEventListener('mousedown', onMouseDown, true);
+    zoomControls.addEventListener('start', comeback, true);
+
 }
 
 function initMobile() {
@@ -206,12 +209,13 @@ function comeback(event) {
     zoomControls.enabled = true;
     rotateControls.enabled = true;
 }
+
 function onMouseDown(event) {
 
     zoomControls.enabled = true;
     rotateControls.enabled = true;
 
-    if(!asciiMesh.visivle){
+    if(!asciiMesh.visible){
         return;
     }
 
@@ -344,7 +348,6 @@ async function loadData() {
             return new Promise((resolve, reject) => {
                 loader.load(path, function (texture) {
                     texture.encoding = THREE.sRGBEncoding;
-                    texture.minFilter = THREE.LinearMipmapNearestFilter;
                     texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
                     resolve(texture);
                 }, undefined, function (error) {
