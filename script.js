@@ -109,17 +109,13 @@ function init() {
             .then(() => {
                 initMobile();
                 animate();
+                window.addEventListener('click',onClick,false);
             })
     } else {
         initZoomControls();
         initRotateControls();
         loadData();
     }
-
-    window.addEventListener('resize', onWindowResize, false);
-    window.addEventListener('click',onClick,false);
-    document.addEventListener('mousemove', onMouseMove, false);
-    document.addEventListener('mousedown', comeback, true);
 
 }
 
@@ -401,10 +397,18 @@ async function loadData() {
             if(!isMobile){
                 onWindowResize();
                 animate();
+                window.addEventListener('click',onClick,false);
+
             }else if(!isSupportDeviceOrientation){
                 initMobile();
                 animate();
+                window.addEventListener('click',onClick,false);
             }
+
+            window.addEventListener('resize', onWindowResize, false);
+            document.addEventListener('mousemove', onMouseMove, false);
+            document.addEventListener('mousedown', comeback, true);
+        
     
             resolve();
 
