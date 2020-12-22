@@ -145,6 +145,7 @@ function initZoomControls() {
     zoomControls.enableDamping = true;
     zoomControls.dampingFactor = 0.1;
     zoomControls.addEventListener('mousedown', onMouseDown, true);
+    zoomControls.addEventListener('touchstart', onMouseDown, true);
     zoomControls.addEventListener('start', comeback, true);
 
 }
@@ -348,7 +349,6 @@ async function loadData() {
             return new Promise((resolve, reject) => {
                 loader.load(path, function (texture) {
                     texture.encoding = THREE.sRGBEncoding;
-                    texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
                     resolve(texture);
                 }, undefined, function (error) {
                     reject(new Error(error));
@@ -366,8 +366,8 @@ async function loadData() {
         }
 
         async function createCapture(){
-           console.log("test.basis");
            const texture = await loadBasisUTexture("./basis/texture.basis");
+           texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
            await createCaptures(captureTextureID)
            captureMesh.material.map = texture;
            captureMesh.material.needsUpdate = texture;

@@ -300,7 +300,7 @@ var OrbitControls = function ( object, domElement ) {
 	var startEvent = { type: 'start' };
 	var endEvent = { type: 'end' };
 	var mouseDownEvent = { type: 'mousedown' };
-
+	var touchStartEvent = { type: 'touchstart' };
 
 	var STATE = {
 		NONE: - 1,
@@ -1018,6 +1018,7 @@ var OrbitControls = function ( object, domElement ) {
 
 			case 1:
 
+				scope.dispatchEvent( touchStartEvent );
 				switch ( scope.touches.ONE ) {
 
 					case TOUCH.ROTATE:
