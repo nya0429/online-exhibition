@@ -2,7 +2,6 @@ import * as THREE from "https://unpkg.com/three@0.123.0/build/three.module.js";
 import { OrbitControls } from "./js/OrbitControls.js";
 import { video2ascii } from "./js/video2ascii.js";
 import { BasisTextureLoader } from 'https://unpkg.com/three@0.123.0/examples/jsm/loaders/BasisTextureLoader.js';
-import Stats from "https://unpkg.com/three@0.123.0/examples/jsm/libs/stats.module.js";
 
 let renderer, scene;
 let camera,zoomCamera, rotateCamera;
@@ -11,16 +10,10 @@ let cube, pickplane,mainLight;
 let effect;
 
 const DataURL = "./online_exhibition_list.csv"
-const marks = '[\\/:*?"<>|]+';
-const regExp = new RegExp(marks, "g");
-
 const displayURLs = [];
 const linkURLs = [];
-
-let stats;
-let charset = ".-_:~/TrJ?1=v7LuctxiYjlszofInyZC2FeV34aEAwUkHXbhp96G5#SPOqQdgK8mD0R&BMNW"
+const charset = ".-_:~/TrJ?1=v7LuctxiYjlszofInyZC2FeV34aEAwUkHXbhp96G5#SPOqQdgK8mD0R&BMNW"
 let asciiMap = [];
-let asciiTexture;
 let asciiMesh;
 let textMesh;
 let captureMesh;
@@ -120,9 +113,6 @@ function init() {
         initRotateControls();
         loadData();
     }
-
-    stats = new Stats();
-    document.body.appendChild(stats.dom);
 
     window.addEventListener('resize', onWindowResize, false);
     document.addEventListener('mousemove', onMouseMove, false);
@@ -246,8 +236,6 @@ function onMouseDown(event) {
 
 function animate() {
 
-    stats.begin();
-
     effect.asciifyImage(textMesh);
 
     if (!isMobile) {
@@ -272,7 +260,6 @@ function animate() {
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
 
-    stats.end();
 }
 
 function loadCSV() {
@@ -305,9 +292,7 @@ async function loadData() {
         let urls = csvstr.split("\n");
         let asciinum = 0;
         let captureTextureID = [];
-        let captureURL = [];
-        let captureURL2 = [];
-
+        let textTextureID = [];
         let textAlpha = [];
 
         for (let i = 0; i < urls.length; i++) {
@@ -320,13 +305,11 @@ async function loadData() {
             linkURLs[i] = linkURL;
 
             captureTextureID.push(i);
-            captureURL.push("./img/" + displayURL.replace(regExp, '') + ".png");
-            captureURL2.push("./basis/" + displayURL.replace(regExp, '') + ".basis");
 
             for (let j = 0; j < displayURL.length; j++) {
 
-                let index = charset.indexOf(displayURL[j]);
-
+                const index = charset.indexOf(displayURL[j]);
+                textTextureID.push(index);
                 textAlpha.push(1);
 
                 let obj = {
@@ -344,64 +327,47 @@ async function loadData() {
             asciinum += col[0].length
         }
 
-        console.log(asciinum);
+        //console.log(asciinum);
 
-        // for (let i = charset.length; i > 0; i--) {
-        //     let num = asciiMap[i - 1].length;
-        //     if (num == 0) {
-        //         charset = charset.replace(charset[i - 1], "");
-        //     }
-        // }
-        // asciiMap = asciiMap.filter(el => el.length > 0)
-
-        async function createEffect() {
-            effect = new video2ascii(charset, asciiMap, asciiTexture,{
+        async function createEffect(texture) {
+            effect = new video2ascii(charset, asciiMap, texture,{
                 color: true, invert: true,
                 resolution: isMobile ? 0.08 : 0.12
             })
         }
 
-        let textTextureID = [];
-        let displayURL;
-        for (let i = 0; i < displayURLs.length; i++) {
-            displayURL = displayURLs[i];
-            for (let j = 0; j < displayURL.length; j++) {
-                textTextureID.push(charset.indexOf(displayURL[j]))
-            }
-        }
 
-        const func = async function () {
-            //await createAsciiTexture();
-            
-            const texture = await loadAsciiTexture("./basis/asciiAtlas1024.basis");
-            await Promise.all([
-                createText(textTextureID, textAlpha),
-                createEffect(),
-                //effect.createAsciiMaterial(texture)
-            ]);
-        }
-
-        const loader = new BasisTextureLoader();
-        loader.setTranscoderPath('https://unpkg.com/three@0.123.0/examples/js/libs/basis/');
-        loader.detectSupport(renderer);
-        function loadTexture(path){
+        function loadBasisUTexture(path){
+            const loader = new BasisTextureLoader();
+            loader.setTranscoderPath('https://unpkg.com/three@0.123.0/examples/js/libs/basis/');
+            loader.detectSupport(renderer);
             return new Promise((resolve, reject) => {
                 loader.load(path, function (texture) {
                     texture.encoding = THREE.sRGBEncoding;
+                    texture.minFilter = THREE.LinearMipmapNearestFilter;
+                    texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
                     resolve(texture);
                 }, undefined, function (error) {
-                    console.log(error);
                     reject(new Error(error));
                 });
             });
         }
 
+        const func = async function () {
+            
+            const texture = await loadBasisUTexture("./basis/asciiAtlas1024.basis");
+            await Promise.all([
+                createText(texture,textTextureID, textAlpha),
+                createEffect(texture),
+            ]);
+        }
+
         async function createCapture(){
            console.log("test.basis");
-           const tex = await loadTexture("./basis/asciiAtlas1024.basis");
+           const texture = await loadBasisUTexture("./basis/texture.basis");
            await createCaptures(captureTextureID)
-           captureMesh.material.map = tex;
-           captureMesh.material.needsUpdate = true;
+           captureMesh.material.map = texture;
+           captureMesh.material.needsUpdate = texture;
         }
 
         await Promise.all([
@@ -458,11 +424,9 @@ async function createCaptures(textureID) {
     let uvChunk = `
     #ifdef USE_UV
     vUv = ( uvTransform * vec3( uv, 1 ) ).xy;
-    vUv.x = (mod(textureID, 4.0)+vUv.x)/4.0;
-    vUv.y = (floor(textureID/4.0)+1.0-vUv.y)/`+ Math.ceil(textureID.length/4) + `.0;
-    //vUv.x = vUv.x/4.0;
-    //vUv.y = (1.0-vUv.y)/`+ Math.ceil(textureID.length/4) + `.0;
-
+    vUv.x = (mod(textureID, 16.0)+vUv.x);
+    vUv.y = (floor(textureID/16.0)+1.0-vUv.y);
+    vUv = vUv/16.0;
     #endif
     `
     let beginVertexChunk = `
@@ -484,14 +448,14 @@ async function createCaptures(textureID) {
 
 }
 
-async function createText(textureID, alpha) {
+async function createText(texture,textureID, alpha) {
 
     let plane = new THREE.PlaneBufferGeometry(textWidth, textWidth * 2);
     let geometry = new THREE.InstancedBufferGeometry();
     THREE.BufferGeometry.prototype.copy.call(geometry, plane);
 
     let material = new THREE.MeshBasicMaterial({
-        map: asciiTexture,
+        map: texture,
         side: THREE.DoubleSide,
         transparent: true,
         //color: 0x000000,
@@ -569,23 +533,6 @@ async function createText(textureID, alpha) {
     scene.add(textMesh);
     console.log("finish create Text")
 
-}
-
-function loadAsciiTexture(path){
-
-    const loader = new BasisTextureLoader();
-    loader.setTranscoderPath('https://unpkg.com/three@0.123.0/examples/js/libs/basis/');
-    loader.detectSupport(renderer);
-
-    return new Promise((resolve, reject) => {
-        loader.load(path, function (texture) {
-            texture.encoding = THREE.sRGBEncoding;
-            asciiTexture = texture;
-            resolve(texture);
-        }, undefined, function (error) {
-            reject(new Error(error));
-        });
-    });
 }
 
 function resizeAsciis(w, h) {
