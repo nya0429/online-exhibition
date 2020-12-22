@@ -1,7 +1,6 @@
 import * as THREE from "https://unpkg.com/three@0.123.0/build/three.module.js";
-//import * as THREE from "./node_modules/three/build/three.module.js";
-import { OrbitControls } from "./OrbitControls.js";
-import { video2ascii } from "./video2ascii.js";
+import { OrbitControls } from "./js/OrbitControls.js";
+import { video2ascii } from "./js/video2ascii.js";
 import { BasisTextureLoader } from 'https://unpkg.com/three@0.123.0/examples/jsm/loaders/BasisTextureLoader.js';
 import Stats from "https://unpkg.com/three@0.123.0/examples/jsm/libs/stats.module.js";
 
@@ -374,7 +373,7 @@ async function loadData() {
         const func = async function () {
             //await createAsciiTexture();
             
-            const texture = await loadAsciiTexture("./basis/test.basis");
+            const texture = await loadAsciiTexture("./basis/font_mobile.basis");
             await Promise.all([
                 createText(textTextureID, textAlpha),
                 createEffect(),
@@ -459,7 +458,9 @@ async function createCaptures(textureID) {
     #ifdef USE_UV
     vUv = ( uvTransform * vec3( uv, 1 ) ).xy;
     vUv.x = (mod(textureID, 4.0)+vUv.x)/4.0;
-    vUv.y = 1.0-(floor(textureID/4.0)+vUv.y)/`+ Math.ceil(textureID.length/4) + `.0;
+    vUv.y = (floor(textureID/4.0)+1.0-vUv.y)/`+ Math.ceil(textureID.length/4) + `.0;
+    //vUv.x = vUv.x/4.0;
+    //vUv.y = (1.0-vUv.y)/`+ Math.ceil(textureID.length/4) + `.0;
 
     #endif
     `
