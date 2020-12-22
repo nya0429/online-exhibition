@@ -82,7 +82,7 @@ const constraints = {
     },
 };
 
-navigator.mediaDevices.getUserMedia(constraints).then().catch();
+//navigator.mediaDevices.getUserMedia(constraints).then().catch();
 
 
 init()
@@ -125,6 +125,7 @@ function init() {
                 initMobile();
                 animate();
                 window.addEventListener('click', _onClick, false);
+
             })
     } else {
         initZoomControls();

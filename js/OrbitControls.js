@@ -1012,13 +1012,13 @@ var OrbitControls = function ( object, domElement ) {
 
 		if ( scope.enabled === false ) return;
 
+		scope.dispatchEvent(touchStartEvent)
 		event.preventDefault(); // prevent scrolling
 
 		switch ( event.touches.length ) {
 
 			case 1:
 
-				scope.dispatchEvent(touchStartEvent);
 				switch ( scope.touches.ONE ) {
 
 					case TOUCH.ROTATE:
