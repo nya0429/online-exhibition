@@ -92,6 +92,8 @@ var OrbitControls = function ( object, domElement ) {
 	this.mousePosX = 0;
 	this.mousePosY = 0;
 
+	this.onTouchStartFunction = function(){};
+
 	//
 	// public methods
 	//
@@ -1026,7 +1028,7 @@ var OrbitControls = function ( object, domElement ) {
 		switch ( event.touches.length ) {
 
 			case 1:
-
+				scope.onTouchStartFunction();
 				switch ( scope.touches.ONE ) {
 
 					case TOUCH.ROTATE:

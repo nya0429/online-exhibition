@@ -124,8 +124,6 @@ function init() {
                 console.log("then")
                 initMobile();
                 animate();
-                window.addEventListener('click', _onClick, false);
-
             })
     } else {
         initZoomControls();
@@ -161,6 +159,7 @@ async function initZoomControls() {
     zoomControls.dampingFactor = 0.1;
     zoomControls.addEventListener('mousedown', onMouseDown, true);
     zoomControls.addEventListener('touchstart', onTouchStart, true);
+    zoomControls.onTouchStartFunction = onTouchStart;
     zoomControls.addEventListener('start', () => { zoomControls.enabled = true }, true);
     console.log("finish initZoomControls")
 
@@ -230,15 +229,8 @@ function comeback(event) {
         rotateControls.enabled = true;
 }
 
-function _onClick(event) {
-    console.log("_onClick")
-    console.log(event)
-
-}
-
 function onTouchStart(event){
     console.log("onTouchStart")
-    console.log(event.touches)
     mouse.x = (zoomControls.mousePosX / window.innerWidth) * 2 - 1;
     mouse.y = - (zoomControls.mousePosY / window.innerHeight) * 2 + 1;
     console.log(mouse)
@@ -418,12 +410,10 @@ async function loadData() {
         if (!isMobile) {
             onWindowResize();
             animate();
-            window.addEventListener('click', _onClick, false);
 
         } else if (!isSupportDeviceOrientation) {
             initMobile();
             animate();
-            window.addEventListener('click', _onClick, false);
         }
 
         window.addEventListener('resize', onWindowResize, false);
