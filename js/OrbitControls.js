@@ -779,6 +779,8 @@ var OrbitControls = function ( object, domElement ) {
 
 	function onPointerDown( event ) {
 
+		console.log("onPointerDown in OrbitControls")
+
 		if ( scope.enabled === false ) return;
 
 		switch ( event.pointerType ) {
