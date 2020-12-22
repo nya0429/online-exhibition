@@ -373,7 +373,7 @@ async function loadData() {
         const func = async function () {
             //await createAsciiTexture();
             
-            const texture = await loadAsciiTexture("./basis/font_mobile.basis");
+            const texture = await loadAsciiTexture("./basis/asciiatlas.basis");
             await Promise.all([
                 createText(textTextureID, textAlpha),
                 createEffect(),
@@ -398,7 +398,7 @@ async function loadData() {
 
         async function createCapture(){
            console.log("font_mobile");
-           const tex = await loadTexture("./basis/font_mobile.basis");
+           const tex = await loadTexture("./basis/asciiatlas.basis");
            await createCaptures(captureTextureID)
            captureMesh.material.map = tex;
            captureMesh.material.needsUpdate = true;
