@@ -397,7 +397,7 @@ async function loadData() {
         }
 
         async function createCapture(){
-           const tex = await loadTexture("./basis/test.basis");
+           const tex = await loadTexture("./basis/font_mobile.basis");
            await createCaptures(captureTextureID)
            captureMesh.material.map = tex;
            captureMesh.material.needsUpdate = true;
