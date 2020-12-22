@@ -161,6 +161,7 @@ function initZoomControls() {
     zoomControls.addEventListener('mousedown', onMouseDown, true);
     zoomControls.addEventListener('touchstart', onMouseDown, true);
     zoomControls.addEventListener('start', () => { zoomControls.enabled = true }, true);
+    console.log("finish initZoomControls")
 
 }
 
