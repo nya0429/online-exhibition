@@ -18,7 +18,7 @@ a {
 
 canvas {
 	display: block;
-	/* pointer-events: auto; */
+	pointer-events: none;
 
 }	
 #container{

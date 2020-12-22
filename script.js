@@ -117,7 +117,7 @@ function init() {
     }
 
     window.addEventListener('resize', onWindowResize, false);
-    window.addEventListener('click',check,false);
+    window.addEventListener('click',onClick,false);
     document.addEventListener('mousemove', onMouseMove, false);
     document.addEventListener('mousedown', comeback, true);
 
@@ -210,11 +210,15 @@ function onMouseMove(event) {
 
 }
 function comeback(event) {
-    zoomControls.enabled = true;
-    rotateControls.enabled = true;
+
+    if(zoomControls)
+        zoomControls.enabled = true;
+    if(rotateCamera)
+        rotateControls.enabled = true;
 }
 
-function check(){
+function onClick(){
+    console.log("onClick")
     if(isOpenWindow){
         isOpenWindow = false;
         zoomControls.enabled = false;
@@ -303,109 +307,115 @@ function loadCSV() {
 
 async function loadData() {
 
-    async function load(csvstr) {
+    return new Promise((resolve, reject) => {
 
-        for (let i = 0; i < charset.length; i++) {
-            asciiMap[i] = [];
-        }
+        async function load(csvstr) {
 
-        let urls = csvstr.split("\n");
-        let asciinum = 0;
-        let captureTextureID = [];
-        let textTextureID = [];
-        let textAlpha = [];
-
-        for (let i = 0; i < urls.length; i++) {
-
-            let col = urls[i].split(",");
-            let displayURL = col[0];
-            let linkURL = col[1];
-
-            displayURLs[i] = displayURL;
-            linkURLs[i] = linkURL;
-
-            captureTextureID.push(i);
-
-            for (let j = 0; j < displayURL.length; j++) {
-
-                const index = charset.indexOf(displayURL[j]);
-                textTextureID.push(index);
-                textAlpha.push(1);
-
-                let obj = {
-                    url: linkURL,
-                    urlIndex: i,
-                    id: asciinum + j,
-                }
-
-                asciiMap[index].push(obj)
-                if (index == -1) {
-                    console.log("ascii not found", obj);
-                }
+            for (let i = 0; i < charset.length; i++) {
+                asciiMap[i] = [];
             }
-
-            asciinum += col[0].length
-        }
-
-        //console.log(asciinum);
-
-        async function createEffect(texture) {
-            effect = new video2ascii(charset, asciiMap, texture,{
-                color: true, invert: true,
-                resolution: isMobile ? 0.08 : 0.12
-            })
-        }
-
-
-        function loadBasisUTexture(path){
-            const loader = new BasisTextureLoader();
-            loader.setTranscoderPath('https://unpkg.com/three@0.123.0/examples/js/libs/basis/');
-            loader.detectSupport(renderer);
-            return new Promise((resolve, reject) => {
-                loader.load(path, function (texture) {
-                    texture.encoding = THREE.sRGBEncoding;
-                    resolve(texture);
-                }, undefined, function (error) {
-                    reject(new Error(error));
+    
+            let urls = csvstr.split("\n");
+            let asciinum = 0;
+            let captureTextureID = [];
+            let textTextureID = [];
+            let textAlpha = [];
+    
+            for (let i = 0; i < urls.length; i++) {
+    
+                let col = urls[i].split(",");
+                let displayURL = col[0];
+                let linkURL = col[1];
+    
+                displayURLs[i] = displayURL;
+                linkURLs[i] = linkURL;
+    
+                captureTextureID.push(i);
+    
+                for (let j = 0; j < displayURL.length; j++) {
+    
+                    const index = charset.indexOf(displayURL[j]);
+                    textTextureID.push(index);
+                    textAlpha.push(1);
+    
+                    let obj = {
+                        url: linkURL,
+                        urlIndex: i,
+                        id: asciinum + j,
+                    }
+    
+                    asciiMap[index].push(obj)
+                    if (index == -1) {
+                        console.log("ascii not found", obj);
+                    }
+                }
+    
+                asciinum += col[0].length
+            }
+    
+            //console.log(asciinum);
+    
+            async function createEffect(texture) {
+                effect = await new video2ascii(charset, asciiMap, texture,{
+                    color: true, invert: true,
+                    resolution: isMobile ? 0.08 : 0.12
+                })
+            }
+    
+    
+            function loadBasisUTexture(path){
+                const loader = new BasisTextureLoader();
+                loader.setTranscoderPath('https://unpkg.com/three@0.123.0/examples/js/libs/basis/');
+                loader.detectSupport(renderer);
+                return new Promise((resolve, reject) => {
+                    loader.load(path, function (texture) {
+                        texture.encoding = THREE.sRGBEncoding;
+                        resolve(texture);
+                    }, undefined, function (error) {
+                        reject(new Error(error));
+                    });
                 });
-            });
-        }
-
-        const func = async function () {
-            
-            const texture = await loadBasisUTexture("./basis/asciiAtlas1024.basis");
+            }
+    
+            async function createAscii() {
+                const texture = await loadBasisUTexture("./basis/asciiAtlas1024.basis");
+                await Promise.all([
+                    createText(texture,textTextureID, textAlpha),
+                    createEffect(texture),
+                ]);
+            }
+    
+            async function createCapture(){
+               const texture = await loadBasisUTexture("./basis/texture.basis");
+               texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+               await createCaptures(captureTextureID)
+               captureMesh.material.map = texture;
+               captureMesh.material.needsUpdate = texture;
+            }
+    
             await Promise.all([
-                createText(texture,textTextureID, textAlpha),
-                createEffect(texture),
-            ]);
-        }
+                createWhiteCube(),
+                createCapture(),
+                createAscii()]);
+    
+            if(!isMobile){
+                onWindowResize();
+                animate();
+            }else if(!isSupportDeviceOrientation){
+                initMobile();
+                animate();
+            }
+    
+            resolve();
 
-        async function createCapture(){
-           const texture = await loadBasisUTexture("./basis/texture.basis");
-           texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-           await createCaptures(captureTextureID)
-           captureMesh.material.map = texture;
-           captureMesh.material.needsUpdate = texture;
-        }
+        };
+    
+        loadCSV().then((csvstr) => {
+            load(csvstr)
+        })
 
-        await Promise.all([
-            createWhiteCube(),
-            createCapture(),
-            func()]);
+    });
 
-        if(!isMobile){
-            onWindowResize();
-            animate();
-        }else if(!isSupportDeviceOrientation){
-            initMobile();
-            animate();
-        }
-
-    };
-
-    await loadCSV().then((csvstr) => {
-        load(csvstr)
-    })
 }
 
 async function createWhiteCube() {
