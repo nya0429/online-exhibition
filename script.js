@@ -149,6 +149,9 @@ function initRotateControls() {
 
 async function initZoomControls() {
 
+    renderer.domElement.addEventListener('touchstart', onTouchStart, true);
+    renderer.domElement.addEventListener('mousedown', onMouseDown, true);
+
     zoomCamera.position.set(0, 0, cubeHalfWidth);
     zoomControls = new OrbitControls(zoomCamera, renderer.domElement);
     zoomControls.enablePan = false;
@@ -156,8 +159,6 @@ async function initZoomControls() {
     zoomControls.maxDistance = cubeHalfWidth;
     zoomControls.enableDamping = true;
     zoomControls.dampingFactor = 0.1;
-    zoomControls.addEventListener('mousedown', onMouseDown, true);
-    zoomControls.addEventListener('touch', onTouchStart, false);
     zoomControls.addEventListener('start', () => { zoomControls.enabled = true }, true);
     console.log("finish initZoomControls")
 
@@ -229,6 +230,7 @@ function comeback(event) {
 
 function onTouchStart(event){
     console.log("onTouchStart")
+    window.open("https://online-exhibitions.cf", '_blank');
     onMouseDown();
 }
 
