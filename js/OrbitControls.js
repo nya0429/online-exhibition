@@ -89,11 +89,6 @@ var OrbitControls = function ( object, domElement ) {
 	this.position0 = this.object.position.clone();
 	this.zoom0 = this.object.zoom;
 
-	this.mousePosX = 0;
-	this.mousePosY = 0;
-
-	this.onTouchStartFunction = function(){};
-
 	//
 	// public methods
 	//
@@ -305,7 +300,7 @@ var OrbitControls = function ( object, domElement ) {
 	var startEvent = { type: 'start' };
 	var endEvent = { type: 'end' };
 	var mouseDownEvent = { type: 'mousedown' };
-	var touchStartEvent = { type: 'touchstart' };
+	var touchStartEvent = { type: 'touch' };
 
 	var STATE = {
 		NONE: - 1,
@@ -836,10 +831,7 @@ var OrbitControls = function ( object, domElement ) {
 		// Manually set the focus since calling preventDefault above
 		// prevents the browser from setting it automatically.
 
-		scope.dispatchEvent( mouseDownEvent );
-		this.mousePosX = event.clientX;
-		this.mousePosY = event.clientY;
-		
+		scope.dispatchEvent( mouseDownEvent );		
 		event.preventDefault();
 
 		scope.domElement.focus ? scope.domElement.focus() : window.focus();

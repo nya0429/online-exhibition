@@ -157,7 +157,7 @@ async function initZoomControls() {
     zoomControls.enableDamping = true;
     zoomControls.dampingFactor = 0.1;
     zoomControls.addEventListener('mousedown', onMouseDown, true);
-    zoomControls.addEventListener('touchstart', onTouchStart, true);
+    zoomControls.addEventListener('touch', onTouchStart, false);
     zoomControls.addEventListener('start', () => { zoomControls.enabled = true }, true);
     console.log("finish initZoomControls")
 
@@ -264,9 +264,7 @@ function onMouseDown(event) {
           } else {
             window.open(linkURLs[urlID], '_blank');
         }
-        //window.location.href = 'https://qiita.com'
     }
-
 }
 
 function animate() {

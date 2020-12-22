@@ -19,10 +19,7 @@ a {
 canvas {
 	display: block;
 }	
-#container{
-	z-index: -5;
-	pointer-events: none;
-}
+
 #title{
 position:absolute;
 top: 50%;
