@@ -250,10 +250,10 @@ function onMouseDown(event) {
     if (!asciiMesh.visible) {
         return;
     }
-
     
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+    console.log(mouse)
 
     raycaster.setFromCamera(mouse, camera);
     const intersection = raycaster.intersectObject(asciiMesh);
