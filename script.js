@@ -229,10 +229,8 @@ function comeback(event) {
 }
 
 function onTouchStart(event){
+    
     console.log("onTouchStart")
-    //window.open("https://online-exhibitions.cf", '_blank');
-    window.location.href = "https://www.iamas.ac.jp";
-    console.log("location href")
     onMouseDown();
 }
 
@@ -263,10 +261,10 @@ function onMouseDown(event) {
             rotateControls.enabled = false;
         }
         
-        if(!window.open(linkURLs[urlID], '_blank')) {
+        const window = window.open(linkURLs[urlID], '_blank');
+
+        if(!window){
             location.href = linkURLs[urlID];
-          } else {
-            window.open(linkURLs[urlID], '_blank');
         }
     }
 }
