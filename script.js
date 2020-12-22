@@ -73,6 +73,18 @@ async function setDeviceOrientation() {
     console.log("setDeviceOrientation end")
 }
 
+const constraints = {
+    audio: false,
+    video: {
+        facingMode: "user",
+        width: window.innerWidth,
+        height: window.innerHeight,
+    },
+};
+
+navigator.mediaDevices.getUserMedia(constraints).then().catch();
+
+
 init()
 function init() {
 
