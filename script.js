@@ -44,23 +44,28 @@ const isSupportDeviceOrientation = Boolean(window.DeviceOrientationEvent);
 let isOpenWindow = false;
 let linkURL = "";
 
-async function setDeviceOrientation() {
+function setDeviceOrientation() {
 
-    async function getDeviceOrientation() {
+    function getDeviceOrientation() {
         console.log("getDeviceOrientation start")
-        rotateControls = new DeviceOrientationControls(rotateCamera);
-        await rotateControls.connect()
-            .then((value) => {
-                console.log(rotateControls)
-                isEnableDeviceOrientation = Boolean(rotateControls.deviceOrientation.returnValue);
-                isEnableDeviceOrientation = true;
-                initZoomControls();
-            }, (value) => {
-                initZoomControls();
-                initRotateControls();
-            })
-        title.innerText = " It's all here. "
-        console.log("getDeviceOrientation end")
+        return new Promise((resolve, reject) => {
+            rotateControls = new DeviceOrientationControls(rotateCamera);
+            rotateControls.connect()
+                .then((value) => {
+                    console.log(rotateControls)
+                    isEnableDeviceOrientation = Boolean(rotateControls.deviceOrientation.returnValue);
+                    isEnableDeviceOrientation = true;
+                    initZoomControls();
+                    resolve();
+                    console.log("getDeviceOrientation end")
+                }, (value) => {
+                    initZoomControls();
+                    initRotateControls();
+                    reject();
+                    console.log("getDeviceOrientation end")
+                })
+            title.innerText = " It's all here. "
+        });
     }
 
     const awaitForClick = (target) => {
@@ -69,8 +74,7 @@ async function setDeviceOrientation() {
         });
     };
 
-    await awaitForClick(renderer.domElement).then(getDeviceOrientation)
-    console.log("setDeviceOrientation end")
+    return awaitForClick(renderer.domElement).then(getDeviceOrientation)
 }
 
 const constraints = {
@@ -118,13 +122,12 @@ function init() {
 
     if (isMobile && isSupportDeviceOrientation) {
         title.innerText = 'touch to allow'
-        setDeviceOrientation()
-        .then(loadData())
-        .then(() => {
-            console.log("then")
-            initMobile();
-            animate();
-        });
+        Promise.all([setDeviceOrientation(),loadData()])
+            .then(() => {
+                console.log("then")
+                initMobile();
+                animate();
+            });
     } else {
         initZoomControls();
         initRotateControls();
@@ -229,7 +232,7 @@ function comeback(event) {
         rotateControls.enabled = true;
 }
 
-function onTouchStart(event){
+function onTouchStart(event) {
 
     console.log("onTouchStart")
     onMouseDown();
@@ -261,10 +264,11 @@ function onMouseDown(event) {
         if (!isEnableDeviceOrientation) {
             rotateControls.enabled = false;
         }
-        
-        let w = window.open(linkURLs[urlID], '_blank');
 
-        if(!w){
+        let w = window.open(linkURLs[urlID], '_blank');
+        console.log(w);
+
+        if (!w) {
             location.href = linkURLs[urlID];
         }
     }
@@ -300,127 +304,130 @@ function animate() {
 
 async function loadData() {
 
-
-        function loadCSV() {
-            return new Promise((resolve, reject) => {
-                let xhr = new XMLHttpRequest();
-                xhr.open("GET", DataURL);
-                xhr.onload = () => {
-                    if (xhr.status === 200) {
-                        resolve(xhr.response);
-                    }
-                    // } else {
-                    //     reject(new Error(xhr.statusText));
-                    // }
-                };
-                xhr.onerror = () => {
-                    reject(new Error(xhr.statusText));
-                };
-                xhr.send();
-            });
-        }
-
-        let csvstr = await loadCSV();
-
-        for (let i = 0; i < charset.length; i++) {
-            asciiMap[i] = [];
-        }
-
-        let urls = csvstr.split("\n");
-        let asciinum = 0;
-        let captureTextureID = [];
-        let textTextureID = [];
-        let textAlpha = [];
-
-        for (let i = 0; i < urls.length; i++) {
-
-            let col = urls[i].split(",");
-            let displayURL = col[0];
-            let linkURL = col[1];
-
-            displayURLs[i] = displayURL;
-            linkURLs[i] = linkURL;
-
-            captureTextureID.push(i);
-
-            for (let j = 0; j < displayURL.length; j++) {
-
-                const index = charset.indexOf(displayURL[j]);
-                textTextureID.push(index);
-                textAlpha.push(1);
-
-                let obj = {
-                    url: linkURL,
-                    urlIndex: i,
-                    id: asciinum + j,
+    function loadCSV() {
+        return new Promise((resolve, reject) => {
+            let xhr = new XMLHttpRequest();
+            xhr.open("GET", DataURL);
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    resolve(xhr.response);
                 }
+                // } else {
+                //     reject(new Error(xhr.statusText));
+                // }
+            };
+            xhr.onerror = () => {
+                reject(new Error(xhr.statusText));
+            };
+            xhr.send();
+        });
+    }
 
-                asciiMap[index].push(obj)
-                if (index == -1) {
-                    console.log("ascii not found", obj);
-                }
+    let csvstr = await loadCSV();
+
+    for (let i = 0; i < charset.length; i++) {
+        asciiMap[i] = [];
+    }
+
+    let urls = csvstr.split("\n");
+    let asciinum = 0;
+    let captureTextureID = [];
+    let textTextureID = [];
+    let textAlpha = [];
+
+    for (let i = 0; i < urls.length; i++) {
+
+        let col = urls[i].split(",");
+        let displayURL = col[0];
+        let linkURL = col[1];
+
+        displayURLs[i] = displayURL;
+        linkURLs[i] = linkURL;
+
+        captureTextureID.push(i);
+
+        for (let j = 0; j < displayURL.length; j++) {
+
+            const index = charset.indexOf(displayURL[j]);
+            textTextureID.push(index);
+            textAlpha.push(1);
+
+            let obj = {
+                url: linkURL,
+                urlIndex: i,
+                id: asciinum + j,
             }
 
-            asciinum += col[0].length
+            asciiMap[index].push(obj)
+            if (index == -1) {
+                console.log("ascii not found", obj);
+            }
         }
 
-        //console.log(asciinum);
+        asciinum += col[0].length
+    }
 
-        async function createEffect(texture) {
-            effect = await new video2ascii(charset, asciiMap, texture, {
-                color: true, invert: true,
-                resolution: isMobile ? 0.08 : 0.12
-            })
-        }
+    //console.log(asciinum);
+
+    async function createEffect(texture) {
+        effect = new video2ascii(charset, asciiMap, texture, {
+            color: true, invert: true,
+            resolution: isMobile ? 0.08 : 0.12
+        })
+
+        await effect.startVideo;
+    }
 
 
-        function loadBasisUTexture(path) {
-            const loader = new BasisTextureLoader();
-            loader.setTranscoderPath('https://unpkg.com/three@0.123.0/examples/js/libs/basis/');
-            loader.detectSupport(renderer);
-            return new Promise((resolve, reject) => {
-                loader.load(path, function (texture) {
-                    texture.encoding = THREE.sRGBEncoding;
-                    resolve(texture);
-                }, undefined, function (error) {
-                    reject(new Error(error));
-                });
+    function loadBasisUTexture(path) {
+        const loader = new BasisTextureLoader();
+        loader.setTranscoderPath('https://unpkg.com/three@0.123.0/examples/js/libs/basis/');
+        loader.detectSupport(renderer);
+        return new Promise((resolve, reject) => {
+            loader.load(path, function (texture) {
+                texture.encoding = THREE.sRGBEncoding;
+                resolve(texture);
+            }, undefined, function (error) {
+                reject(new Error(error));
             });
-        }
+        });
+    }
 
-        async function createAscii() {
-            const texture = await loadBasisUTexture("./basis/asciiAtlas1024.basis");
-            await Promise.all([
-                createText(texture, textTextureID, textAlpha),
-                createEffect(texture),
-            ]);
-        }
-
-        async function createCapture() {
-            const texture = await loadBasisUTexture("./basis/texture.basis");
-            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-            await createCaptures(captureTextureID)
-            captureMesh.material.map = texture;
-            captureMesh.material.needsUpdate = texture;
-        }
-
+    async function createAscii() {
+        const texture = await loadBasisUTexture("./basis/asciiAtlas1024.basis");
         await Promise.all([
-            createWhiteCube(),
-            createCapture(),
-            createAscii()]);
+            createText(texture, textTextureID, textAlpha),
+            createEffect(texture),
+        ]);
+    }
 
-        if (!isMobile) {
-            onWindowResize();
-            animate();
+    async function createCapture() {
+        const texture = await loadBasisUTexture("./basis/texture.basis");
+        texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        await createCaptures(captureTextureID)
+        captureMesh.material.map = texture;
+        captureMesh.material.needsUpdate = texture;
+    }
 
-        } else if (!isSupportDeviceOrientation) {
-            initMobile();
-            animate();
-        }
+    await Promise.all([
+        createWhiteCube(),
+        createCapture(),
+        createAscii()]);
 
-        window.addEventListener('resize', onWindowResize, false);
-        document.addEventListener('mousemove', onMouseMove, false);
-        document.addEventListener('mousedown', comeback, true);
+    if (!isMobile) {
+        onWindowResize();
+        animate();
+
+    } else if (!isSupportDeviceOrientation) {
+        initMobile();
+        animate();
+    }
+
+    window.addEventListener('resize', onWindowResize, false);
+    document.addEventListener('mousemove', onMouseMove, false);
+    document.addEventListener('mousedown', comeback, true);
+
+    console.log("finish load CSV")
 
 }
 
