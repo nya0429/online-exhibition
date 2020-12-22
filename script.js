@@ -103,6 +103,8 @@ function init() {
     mainLight = new THREE.PointLight(0xcccccc, 2, window.innerWidth, 1);
     scene.add(mainLight);
 
+    console.log(isSupportDeviceOrientation)
+
     if (isMobile && isSupportDeviceOrientation) {
         title.innerText = 'touch to allow'
         Promise.all([setDeviceOrientation(), loadData()])
@@ -110,7 +112,7 @@ function init() {
                 console.log("then")
                 initMobile();
                 animate();
-                window.addEventListener('click', onClick, false);
+                window.addEventListener('click', _onClick, false);
             })
     } else {
         initZoomControls();
@@ -210,12 +212,12 @@ function comeback(event) {
 
     if (zoomControls)
         zoomControls.enabled = true;
-    if (rotateCamera)
+    if (rotateControls)
         rotateControls.enabled = true;
 }
 
-function onClick() {
-    console.log("onClick")
+function _onClick() {
+    console.log("_onClick")
     if (isOpenWindow) {
         isOpenWindow = false;
         zoomControls.enabled = false;
@@ -397,12 +399,12 @@ async function loadData() {
         if (!isMobile) {
             onWindowResize();
             animate();
-            window.addEventListener('click', onClick, false);
+            window.addEventListener('click', _onClick, false);
 
         } else if (!isSupportDeviceOrientation) {
             initMobile();
             animate();
-            window.addEventListener('click', onClick, false);
+            window.addEventListener('click', _onClick, false);
         }
 
         window.addEventListener('resize', onWindowResize, false);
