@@ -231,7 +231,7 @@ function comeback(event) {
 function onTouchStart(event){
     console.log("onTouchStart")
     //window.open("https://online-exhibitions.cf", '_blank');
-    window.location.href = "https://online-exhibitions.cf";
+    window.location.href = "https://www.iamas.ac.jp";
     console.log("location href")
     onMouseDown();
 }
