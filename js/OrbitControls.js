@@ -1018,7 +1018,7 @@ var OrbitControls = function ( object, domElement ) {
 		console.log("onTouchStart in OrbitControls")
 
 		scope.dispatchEvent(touchStartEvent)
-		event.preventDefault();
+		//event.preventDefault();
 
 		switch ( event.touches.length ) {
 
