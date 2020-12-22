@@ -104,7 +104,6 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     document.body.appendChild(renderer.domElement);
-
     const deg = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
     camera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
     //camera.rotateX(Math.PI / 2)
@@ -158,8 +157,7 @@ async function initZoomControls() {
     zoomControls.enableDamping = true;
     zoomControls.dampingFactor = 0.1;
     zoomControls.addEventListener('mousedown', onMouseDown, true);
-    //zoomControls.addEventListener('touchstart', onTouchStart, true);
-    zoomControls.onTouchStartFunction = onTouchStart;
+    zoomControls.addEventListener('touchstart', onTouchStart, true);
     zoomControls.addEventListener('start', () => { zoomControls.enabled = true }, true);
     console.log("finish initZoomControls")
 
@@ -229,11 +227,8 @@ function comeback(event) {
         rotateControls.enabled = true;
 }
 
-function onTouchStart(x,y){
+function onTouchStart(event){
     console.log("onTouchStart")
-    mouse.x = (x / window.innerWidth) * 2 - 1;
-    mouse.y = - (y / window.innerHeight) * 2 + 1;
-    console.log(mouse)
     onMouseDown();
 }
 
@@ -263,7 +258,13 @@ function onMouseDown(event) {
         if (!isEnableDeviceOrientation) {
             rotateControls.enabled = false;
         }
-        window.open(linkURLs[urlID], '_blank');
+        
+        if(!window.open(linkURLs[urlID], '_blank')) {
+            location.href = linkURLs[urlID];
+          } else {
+            window.open(linkURLs[urlID], '_blank');
+        }
+        //window.location.href = 'https://qiita.com'
     }
 
 }
