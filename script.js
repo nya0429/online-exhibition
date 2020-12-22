@@ -229,10 +229,10 @@ function comeback(event) {
         rotateControls.enabled = true;
 }
 
-function onTouchStart(event){
+function onTouchStart(x,y){
     console.log("onTouchStart")
-    mouse.x = (zoomControls.mousePosX / window.innerWidth) * 2 - 1;
-    mouse.y = - (zoomControls.mousePosY / window.innerHeight) * 2 + 1;
+    mouse.x = (x / window.innerWidth) * 2 - 1;
+    mouse.y = - (y / window.innerHeight) * 2 + 1;
     console.log(mouse)
     onMouseDown();
 }
