@@ -1018,7 +1018,7 @@ var OrbitControls = function ( object, domElement ) {
 
 			case 1:
 
-				scope.dispatchEvent( touchStartEvent );
+				scope.dispatchEvent(touchStartEvent);
 				switch ( scope.touches.ONE ) {
 
 					case TOUCH.ROTATE:

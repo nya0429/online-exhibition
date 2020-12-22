@@ -159,7 +159,7 @@ async function initZoomControls() {
     zoomControls.enableDamping = true;
     zoomControls.dampingFactor = 0.1;
     zoomControls.addEventListener('mousedown', onMouseDown, true);
-    zoomControls.addEventListener('touchstart', onMouseDown, true);
+    zoomControls.addEventListener('touchstart', onTouchStart, true);
     zoomControls.addEventListener('start', () => { zoomControls.enabled = true }, true);
     console.log("finish initZoomControls")
 
@@ -222,15 +222,16 @@ function onMouseMove(event) {
 
 }
 function comeback(event) {
-
     if (zoomControls)
         zoomControls.enabled = true;
     if (rotateControls)
         rotateControls.enabled = true;
 }
 
-function _onClick() {
+function _onClick(event) {
     console.log("_onClick")
+    console.log(event)
+
     if (isOpenWindow) {
         isOpenWindow = false;
         zoomControls.enabled = false;
@@ -241,19 +242,25 @@ function _onClick() {
     }
 }
 
+function onTouchStart(event){
+    console.log(event.touches)
+    console.log("onTouchStart")
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+    console.log(mouse)
+    onMouseDown();
+}
+
 function onMouseDown(event) {
+
+    console.log("onMouseDown")
 
     zoomControls.enabled = true;
     rotateControls.enabled = true;
-    console.log("onMouseDown")
 
     if (!asciiMesh.visible) {
         return;
     }
-    
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
-    console.log(mouse)
 
     raycaster.setFromCamera(mouse, camera);
     const intersection = raycaster.intersectObject(asciiMesh);
