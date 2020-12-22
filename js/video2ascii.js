@@ -58,7 +58,10 @@ let video2ascii = function (_charset, _asciiMap, _asciiTexture, options) {
         let uvChunk = `
         #ifdef USE_UV
         vUv = ( uvTransform * vec3( uv, 1 ) ).xy;
-        vUv.x = (asciiInstanceUV+vUv.x)/`+ charset.length + `.0;
+        //vUv.x = (asciiInstanceUV+vUv.x)/`+ charset.length + `.0;
+        vUv.x = (mod(asciiInstanceUV,12.0)+vUv.x)/12.0;
+        vUv.y = (floor(asciiInstanceUV/12.0)+1.0-vUv.y)/6.0;
+
         #endif
         `
         let color_pars_vertex = `
@@ -252,7 +255,8 @@ let video2ascii = function (_charset, _asciiMap, _asciiTexture, options) {
         let uvChunk = `
         #ifdef USE_UV
         vUv = ( uvTransform * vec3( uv, 1 ) ).xy;
-        vUv.x = (asciiInstanceUV+vUv.x)/`+ charset.length + `.0;
+        vUv.x = (mod(asciiInstanceUV,12.0)+vUv.x)/12.0;
+        vUv.y = (floor(asciiInstanceUV/12.0)+1.0-vUv.y)/6.0;
         #endif
         `
         let color_fragment = `

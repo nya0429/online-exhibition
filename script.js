@@ -373,7 +373,7 @@ async function loadData() {
         const func = async function () {
             //await createAsciiTexture();
             
-            const texture = await loadAsciiTexture("./basis/asciiatlas512.basis");
+            const texture = await loadAsciiTexture("./basis/asciiAtlas1024.basis");
             await Promise.all([
                 createText(textTextureID, textAlpha),
                 createEffect(),
@@ -397,8 +397,8 @@ async function loadData() {
         }
 
         async function createCapture(){
-           console.log("asciiatlas512");
-           const tex = await loadTexture("./basis/asciiatlas512.basis");
+           console.log("test.basis");
+           const tex = await loadTexture("./basis/asciiAtlas1024.basis");
            await createCaptures(captureTextureID)
            captureMesh.material.map = tex;
            captureMesh.material.needsUpdate = true;
@@ -506,7 +506,9 @@ async function createText(textureID, alpha) {
     let uvChunk = `
     #ifdef USE_UV
     vUv = ( uvTransform * vec3( uv, 1 ) ).xy;
-    vUv.x = (textureID+vUv.x)/`+ charset.length + `.0;
+    vUv.x = (mod(textureID,12.0)+vUv.x)/12.0;
+    vUv.y = (floor(textureID/12.0)+1.0-vUv.y)/6.0;
+
     #endif
     `
     let color_pars_vertex = `
