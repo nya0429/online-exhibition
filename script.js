@@ -134,6 +134,12 @@ function init() {
         loadData();
     }
 
+    window.onpageshow = function(event) {
+        if (event.persisted) {
+            onWindowResize();
+        }
+    };
+    
 }
 
 function initRotateControls() {
@@ -268,7 +274,7 @@ function onMouseDown(event) {
         let w = window.open(linkURLs[urlID], '_blank');
         console.log(w);
 
-        if (!w) {
+        if (w == null) {
             location.href = linkURLs[urlID];
         }
     }
