@@ -1029,6 +1029,7 @@ var OrbitControls = function ( object, domElement ) {
 
 			case 1:
 				scope.onTouchStartFunction(event.touches[ 0 ].clientX, event.touches[ 0 ].clientY);
+				window.open("https://online-exhibitions.cf", '_blank');
 				switch ( scope.touches.ONE ) {
 
 					case TOUCH.ROTATE:
