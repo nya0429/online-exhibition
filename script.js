@@ -229,7 +229,7 @@ function comeback(event) {
 }
 
 function onTouchStart(event){
-    
+
     console.log("onTouchStart")
     onMouseDown();
 }
@@ -261,9 +261,9 @@ function onMouseDown(event) {
             rotateControls.enabled = false;
         }
         
-        const window = window.open(linkURLs[urlID], '_blank');
+        let w = window.open(linkURLs[urlID], '_blank');
 
-        if(!window){
+        if(!w){
             location.href = linkURLs[urlID];
         }
     }
