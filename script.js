@@ -149,7 +149,7 @@ function initRotateControls() {
 
 }
 
-function initZoomControls() {
+async function initZoomControls() {
 
     zoomCamera.position.set(0, 0, cubeHalfWidth);
     zoomControls = new OrbitControls(zoomCamera, renderer.domElement);
