@@ -158,7 +158,7 @@ async function initZoomControls() {
     zoomControls.enableDamping = true;
     zoomControls.dampingFactor = 0.1;
     zoomControls.addEventListener('mousedown', onMouseDown, true);
-    zoomControls.addEventListener('touchstart', onTouchStart, true);
+    //zoomControls.addEventListener('touchstart', onTouchStart, true);
     zoomControls.onTouchStartFunction = onTouchStart;
     zoomControls.addEventListener('start', () => { zoomControls.enabled = true }, true);
     console.log("finish initZoomControls")
