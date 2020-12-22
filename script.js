@@ -222,6 +222,7 @@ function onMouseMove(event) {
     mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
 
 }
+
 function comeback(event) {
     if (zoomControls)
         zoomControls.enabled = true;
@@ -233,21 +234,13 @@ function _onClick(event) {
     console.log("_onClick")
     console.log(event)
 
-    if (isOpenWindow) {
-        isOpenWindow = false;
-        zoomControls.enabled = false;
-        if (!isEnableDeviceOrientation) {
-            rotateControls.enabled = false;
-        }
-        window.open(linkURL, '_blank');
-    }
 }
 
 function onTouchStart(event){
-    console.log(event.touches)
     console.log("onTouchStart")
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+    console.log(event.touches)
+    mouse.x = (zoomControls.mousePosX / window.innerWidth) * 2 - 1;
+    mouse.y = - (zoomControls.mousePosY / window.innerHeight) * 2 + 1;
     console.log(mouse)
     onMouseDown();
 }
@@ -255,6 +248,7 @@ function onTouchStart(event){
 function onMouseDown(event) {
 
     console.log("onMouseDown")
+    console.log(event)
 
     zoomControls.enabled = true;
     rotateControls.enabled = true;
@@ -273,11 +267,11 @@ function onMouseDown(event) {
         console.log(charID)
         console.log(charset[charID], linkURLs[urlID])
 
-        isOpenWindow = true;
-        linkURL = linkURLs[urlID];
-
-        //window.open(linkURLs[urlID], '_blank');
-
+        zoomControls.enabled = false;
+        if (!isEnableDeviceOrientation) {
+            rotateControls.enabled = false;
+        }
+        window.open(linkURLs[urlID], '_blank');
     }
 
 }

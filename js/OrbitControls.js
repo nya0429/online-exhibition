@@ -89,6 +89,9 @@ var OrbitControls = function ( object, domElement ) {
 	this.position0 = this.object.position.clone();
 	this.zoom0 = this.object.zoom;
 
+	this.mousePosX = 0;
+	this.mousePosY = 0;
+
 	//
 	// public methods
 	//
@@ -832,6 +835,9 @@ var OrbitControls = function ( object, domElement ) {
 		// prevents the browser from setting it automatically.
 
 		scope.dispatchEvent( mouseDownEvent );
+		this.mousePosX = event.clientX;
+		this.mousePosY = event.clientY;
+		
 		event.preventDefault();
 
 		scope.domElement.focus ? scope.domElement.focus() : window.focus();
@@ -1013,6 +1019,8 @@ var OrbitControls = function ( object, domElement ) {
 		if ( scope.enabled === false ) return;
 
 		scope.dispatchEvent(touchStartEvent)
+		this.mousePosX = event.touches[ 0 ].clientX;
+		this.mousePosY = event.touches[ 0 ].clientY;
 		event.preventDefault(); // prevent scrolling
 
 		switch ( event.touches.length ) {
