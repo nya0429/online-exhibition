@@ -835,7 +835,7 @@ var OrbitControls = function ( object, domElement ) {
 		// prevents the browser from setting it automatically.
 
 		scope.dispatchEvent( mouseDownEvent );		
-		event.preventDefault();
+		//event.preventDefault();
 
 		scope.domElement.focus ? scope.domElement.focus() : window.focus();
 

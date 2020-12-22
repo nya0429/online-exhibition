@@ -374,8 +374,6 @@ async function loadData() {
             color: true, invert: true,
             resolution: isMobile ? 0.08 : 0.12
         })
-
-        await effect.startVideo;
     }
 
 
