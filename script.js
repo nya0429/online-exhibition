@@ -2,15 +2,12 @@ import * as THREE from "https://unpkg.com/three@0.123.0/build/three.module.js";
 import { OrbitControls } from "./js/OrbitControls.js";
 import { video2ascii } from "./js/video2ascii.js";
 import { BasisTextureLoader } from 'https://unpkg.com/three@0.123.0/examples/jsm/loaders/BasisTextureLoader.js';
-import { CSS3DRenderer, CSS3DObject } from './js/CSS3DRenderer.js';
 
 let renderer, scene;
 let camera,zoomCamera, rotateCamera;
 let rotateControls, zoomControls;
 let cube, pickplane,mainLight;
 let effect;
-let CSSrenderer = new CSS3DRenderer();
-let CSSscene;
 
 const DataURL = "./online_exhibition_list.csv"
 const displayURLs = [];
@@ -44,6 +41,8 @@ const title = document.getElementById('title');
 let isMobile = false;
 let isEnableDeviceOrientation = false;
 const isSupportDeviceOrientation = Boolean(window.DeviceOrientationEvent);
+let isOpenWindow = false;
+let linkURL = "";
 
 async function setDeviceOrientation() {
 
@@ -122,11 +121,6 @@ function init() {
     document.addEventListener('mousemove', onMouseMove, false);
     document.addEventListener('mousedown', comeback, true);
 
-}
-
-function check(){
-    console.log("click")
-    window.open("https://online-exhibitions.cf/", '_blank');
 }
 
 function initRotateControls() {
@@ -220,6 +214,17 @@ function comeback(event) {
     rotateControls.enabled = true;
 }
 
+function check(){
+    if(isOpenWindow){
+        isOpenWindow = false;
+        zoomControls.enabled = false;
+        if (!isEnableDeviceOrientation) {
+            rotateControls.enabled = false;
+        }
+        window.open(linkURL, '_blank');
+    }
+}
+
 function onMouseDown(event) {
 
     zoomControls.enabled = true;
@@ -234,17 +239,17 @@ function onMouseDown(event) {
     const intersection = raycaster.intersectObject(asciiMesh);
     if (intersection.length > 0) {
 
-        zoomControls.enabled = false;
-        if (!isEnableDeviceOrientation) {
-            rotateControls.enabled = false;
-        }
-
         const instanceId = intersection[0].instanceId;
         const urlID = asciiMesh.geometry.attributes.asciiInstanceURL.getX(instanceId);
         const charID = asciiMesh.geometry.attributes.asciiInstanceUV.getX(instanceId);
         console.log(charID)
-        window.open(linkURLs[urlID], '_blank');
         console.log(charset[charID], linkURLs[urlID])
+
+        isOpenWindow = true;
+        linkURL = linkURLs[urlID];
+
+        //window.open(linkURLs[urlID], '_blank');
+
     }
 
 }
