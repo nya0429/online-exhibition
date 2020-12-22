@@ -18,8 +18,13 @@ a {
 
 canvas {
 	display: block;
-}	
+	/* pointer-events: auto; */
 
+}	
+#container{
+	z-index: -5;
+	pointer-events: none;
+}
 #title{
 position:absolute;
 top: 50%;

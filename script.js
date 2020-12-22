@@ -2,12 +2,15 @@ import * as THREE from "https://unpkg.com/three@0.123.0/build/three.module.js";
 import { OrbitControls } from "./js/OrbitControls.js";
 import { video2ascii } from "./js/video2ascii.js";
 import { BasisTextureLoader } from 'https://unpkg.com/three@0.123.0/examples/jsm/loaders/BasisTextureLoader.js';
+import { CSS3DRenderer, CSS3DObject } from './js/CSS3DRenderer.js';
 
 let renderer, scene;
 let camera,zoomCamera, rotateCamera;
 let rotateControls, zoomControls;
 let cube, pickplane,mainLight;
 let effect;
+let CSSrenderer = new CSS3DRenderer();
+let CSSscene;
 
 const DataURL = "./online_exhibition_list.csv"
 const displayURLs = [];
@@ -97,7 +100,7 @@ function init() {
     rotateCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
     zoomCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
     scene = new THREE.Scene();
-        // lights
+    // lights
     mainLight = new THREE.PointLight(0xcccccc, 2, window.innerWidth, 1);
     scene.add(mainLight);
 
@@ -115,9 +118,15 @@ function init() {
     }
 
     window.addEventListener('resize', onWindowResize, false);
+    window.addEventListener('click',check,false);
     document.addEventListener('mousemove', onMouseMove, false);
     document.addEventListener('mousedown', comeback, true);
 
+}
+
+function check(){
+    console.log("click")
+    window.open("https://online-exhibitions.cf/", '_blank');
 }
 
 function initRotateControls() {
@@ -131,7 +140,7 @@ function initRotateControls() {
     rotateControls.dampingFactor = 0.05;
     rotateControls.minPolarAngle = Math.PI / 3;
     rotateControls.maxPolarAngle = Math.PI - rotateControls.minPolarAngle;
-    rotateControls.addEventListener('start', comeback, true);
+    rotateControls.addEventListener('start', ()=>{rotateControls.enabled = true}, true);
 
 }
 
@@ -146,7 +155,7 @@ function initZoomControls() {
     zoomControls.dampingFactor = 0.1;
     zoomControls.addEventListener('mousedown', onMouseDown, true);
     zoomControls.addEventListener('touchstart', onMouseDown, true);
-    zoomControls.addEventListener('start', comeback, true);
+    zoomControls.addEventListener('start', ()=>{zoomControls.enabled = true}, true);
 
 }
 
@@ -215,6 +224,7 @@ function onMouseDown(event) {
 
     zoomControls.enabled = true;
     rotateControls.enabled = true;
+    console.log("onMouseDown")
 
     if(!asciiMesh.visible){
         return;
