@@ -83,6 +83,8 @@ async function setDeviceOrientation() {
     // 何もreturnしていない場合はundefinedを返したのと同じ扱いとなる
 }
 
+
+
 window.addEventListener('load', init);
 
 function init() {
@@ -116,18 +118,20 @@ function init() {
 
     console.log(isSupportDeviceOrientation)
 
-    if (isMobile && isSupportDeviceOrientation) {
-        title.innerText = 'touch to allow'
-        Promise.all([setDeviceOrientation(), loadData()])
-            .then(() => {
-                console.log("then")
-                animate();
-            });
-    } else {
-        initZoomControls();
-        initRotateControls();
-        loadData().then(animate);
-    }
+    loadData().then(animate);
+
+    // if (isMobile && isSupportDeviceOrientation) {
+    //     title.innerText = 'touch to allow'
+    //     Promise.all([setDeviceOrientation(), loadData()])
+    //         .then(() => {
+    //             console.log("then")
+    //             animate();
+    //         });
+    // } else {
+    //     initZoomControls();
+    //     initRotateControls();
+    //     loadData().then(animate);
+    // }
 
     // window.onpageshow = function (event) {
     //     if (event.persisted) {
@@ -251,6 +255,29 @@ function animate() {
 
 }
 
+async function getDeviceOrientation() {
+
+    if (!isMobile) {
+        initZoomControls();
+        initRotateControls();
+        return
+    }
+
+    rotateControls = new DeviceOrientationControls(rotateCamera);
+    await rotateControls.connect()
+        .then((value) => {
+            console.log(rotateControls)
+            isEnableDeviceOrientation = Boolean(rotateControls.deviceOrientation.returnValue);
+            isEnableDeviceOrientation = true;
+            initZoomControls();
+            console.log("getDeviceOrientation fullfilled end")
+        }, (value) => {
+            initZoomControls();
+            initRotateControls();
+            console.log("getDeviceOrientation reject end")
+        })
+    return
+}
 async function loadData() {
 
 
@@ -334,10 +361,10 @@ async function loadData() {
         loader.setTranscoderPath('https://unpkg.com/three@0.123.0/examples/js/libs/basis/');
         loader.detectSupport(renderer);
         return new Promise((resolve, reject) => {
-            console.log("start load texture",path)
+            console.log("start load texture", path)
             loader.load(path, function (texture) {
                 texture.encoding = THREE.sRGBEncoding;
-                console.log("finish load texture",path)
+                console.log("finish load texture", path)
                 resolve(texture);
             }, undefined, function (error) {
                 reject(new Error(error));
@@ -354,7 +381,7 @@ async function loadData() {
         let material = new THREE.MeshBasicMaterial({
             side: THREE.DoubleSide,
             transparent: true,
-            map:new THREE.Texture(),
+            map: new THREE.Texture(),
         });
 
         let commonChunk = `
@@ -444,7 +471,7 @@ async function loadData() {
             side: THREE.DoubleSide,
             depthWrite: false,
             depthTest: false,
-            map:new THREE.Texture(),
+            map: new THREE.Texture(),
         });
 
         let commonChunk = `
@@ -488,12 +515,12 @@ async function loadData() {
         return
     }
 
-    async function createMesh(){
+    async function createMesh() {
 
         await setArray();
-        
+
         await Promise.all([
-            effect.startVideo(),
+            effect.startVideo().then(getDeviceOrientation).then().catch(),
             createText(textTextureID, textAlpha),
             createCaptureMesh(captureTextureID)
         ])
@@ -510,7 +537,7 @@ async function loadData() {
         loadBasisUTexture("./basis/asciiAtlas1024.basis"),
         loadBasisUTexture("./basis/texture.basis"),
 
-    ]).then((value)=>{
+    ]).then((value) => {
 
         asciiAtlas = value[2];
         textMesh.material.map = asciiAtlas;
