@@ -99,7 +99,7 @@ async function initZoomControls() {
     zoomControls = new OrbitControls(zoomCamera, renderer.domElement);
     zoomControls.enablePan = false;
     zoomControls.enableRotate = false;
-    zoomControls.maxDistance = isMobile ? mobileSize : cubeHalfWidth;
+    zoomControls.maxDistance = isMobile ? Math.min(document.documentElement.clientHeight, document.documentElement.clientWidth)/2 : cubeHalfWidth;
     zoomControls.enableDamping = true;
     zoomControls.dampingFactor = 0.1;
     //console.log("finish initZoomControls")
@@ -152,8 +152,7 @@ function onMouseDown(event) {
         //console.log(charID)
         //console.log(charset[charID], linkURLs[urlID])
 
-        let w = window.open(linkURLs[urlID], '_blank');
-        console.log(w);
+        window.open(linkURLs[urlID], '_blank');
 
     }
 }
