@@ -23,8 +23,9 @@ let video2ascii = function (_charset, _asciiMap, options) {
 
     let asciiMesh;
     let asciiGeometry = new THREE.InstancedBufferGeometry();
-    let asciiInstanceUV = new THREE.InstancedBufferAttribute();
-    let asciiInstanceURL = new THREE.InstancedBufferAttribute();
+    let asciiInstanceTextureID = new THREE.InstancedBufferAttribute();
+    this.URLList = [];
+
     let asciiMaterial;
 
     if (!options) options = {};
@@ -102,14 +103,14 @@ let video2ascii = function (_charset, _asciiMap, options) {
         });
 
         let commonChunk = `
-        attribute float asciiInstanceUV;
+        attribute float asciiInstanceTextureID;
         #include <common>
         `
         let uvChunk = `
         #ifdef USE_UV
         vUv = ( uvTransform * vec3( uv, 1 ) ).xy;
-        vUv.x = (mod(asciiInstanceUV,12.0)+vUv.x)/12.0;
-        vUv.y = (floor(asciiInstanceUV/12.0)+1.0-vUv.y)/6.0;
+        vUv.x = (mod(asciiInstanceTextureID,12.0)+vUv.x)/12.0;
+        vUv.y = (floor(asciiInstanceTextureID/12.0)+1.0-vUv.y)/6.0;
         #endif
         `
         let color_fragment = `
@@ -192,11 +193,10 @@ let video2ascii = function (_charset, _asciiMap, options) {
         plane.translate(textWidth / 2, textWidth, 0);
         THREE.BufferGeometry.prototype.copy.call(asciiGeometry, plane);
 
-        asciiInstanceUV = new THREE.InstancedBufferAttribute(new Float32Array(iWidth * iHeight), 1);
-        asciiInstanceURL = new THREE.InstancedBufferAttribute(new Uint8Array(iWidth * iHeight), 1);
+        asciiInstanceTextureID = new THREE.InstancedBufferAttribute(new Float32Array(iWidth * iHeight), 1);
+        this.URLList = new Uint8Array(iWidth * iHeight);
 
-        asciiGeometry.setAttribute('asciiInstanceUV', asciiInstanceUV);
-        asciiGeometry.setAttribute('asciiInstanceURL', asciiInstanceURL);
+        asciiGeometry.setAttribute('asciiInstanceTextureID', asciiInstanceTextureID);
 
         asciiMesh = new THREE.InstancedMesh(asciiGeometry, asciiMaterial, iWidth * iHeight)
 
@@ -261,9 +261,8 @@ let video2ascii = function (_charset, _asciiMap, options) {
                 threeColor.setRGB(oImgData[iOffset] / 255, oImgData[iOffset + 1] / 255, oImgData[iOffset + 2] / 255)
                 textMesh.setColorAt(tmplist[rand].id, threeColor)
                 textMesh.geometry.attributes.alpha.setX(tmplist[rand].id, 0.1);
-                asciiInstanceUV.setX(i, iCharIdx)
-                //console.log(iCharIdx);
-                asciiInstanceURL.setX(i, tmplist[rand].urlIndex)
+                asciiInstanceTextureID.setX(i, iCharIdx)
+                this.URLList[i] = tmplist[rand].urlIndex;
                 asciiMesh.setColorAt(i, threeColor)
 
                 if (find) {
@@ -273,8 +272,7 @@ let video2ascii = function (_charset, _asciiMap, options) {
         }
 
         textMesh.geometry.attributes.alpha.needsUpdate = true;
-        asciiMesh.geometry.attributes.asciiInstanceUV.needsUpdate = true;
-        asciiMesh.geometry.attributes.asciiInstanceURL.needsUpdate = true;
+        asciiMesh.geometry.attributes.asciiInstanceTextureID.needsUpdate = true;
         asciiMesh.instanceColor.needsUpdate = true;
 
     }
@@ -284,7 +282,7 @@ let video2ascii = function (_charset, _asciiMap, options) {
         video.play();
     }
 
-    window.addEventListener('focus',resumeVideo);
+    window.addEventListener('focus',resumeVideo,true);
 
 }
 

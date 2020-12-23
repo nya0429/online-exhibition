@@ -148,8 +148,9 @@ function onMouseDown(event) {
     if (intersection.length > 0) {
 
         const instanceId = intersection[0].instanceId;
-        const urlID = asciiMesh.geometry.attributes.asciiInstanceURL.getX(instanceId);
-        //const charID = asciiMesh.geometry.attributes.asciiInstanceUV.getX(instanceId);
+        const urlID = effect.URLList[instanceId];
+
+        //const charID = asciiMesh.geometry.attributes.asciiInstanceTextureID.getX(instanceId);
         //console.log(charID)
         //console.log(charset[charID], linkURLs[urlID])
 
@@ -486,10 +487,18 @@ async function loadData() {
 
     window.addEventListener('resize', onWindowResize, false);
     document.addEventListener('mousemove', onMouseMove, false);
+    window.addEventListener('blur',onblur,true);
+
 
     console.log("finish load CSV")
     return
 
+}
+
+function onblur(){
+    // console.log("onblur")
+    rotateControls.state = -1;
+    zoomControls.state = -1;
 }
 
 function setBaseSize() {
