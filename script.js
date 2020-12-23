@@ -269,9 +269,8 @@ async function getDeviceOrientation() {
         return
     }
 
-    if(confirm('次の処理を続けますか？')){
-        rotateControls = new DeviceOrientationControls(rotateCamera);
-        await rotateControls.connect()
+    rotateControls = new DeviceOrientationControls(rotateCamera);
+    await rotateControls.connect()
             .then((value) => {
                 console.log(rotateControls)
                 isEnableDeviceOrientation = Boolean(rotateControls.deviceOrientation.returnValue);
@@ -283,14 +282,10 @@ async function getDeviceOrientation() {
                 initRotateControls();
                 console.log("getDeviceOrientation reject end")
             })
-        return;
-    }else{
-        initZoomControls();
-        initRotateControls();
-        return;
-    }
+    return;
 
 }
+
 async function loadData() {
 
 
@@ -532,8 +527,25 @@ async function loadData() {
 
         await setArray();
 
+        async function permission(){
+
+            function awaitForClick(target) {
+                return new Promise(resolve => {
+                    console.log("set click Event");
+                    target.addEventListener("click", resolve, { once: true });
+                });
+            };
+            
+            //await式は右辺のPromiseインスタンスがFulfilledまたはRejectedになるまでその場で非同期処理の完了を待ちます。
+            await Promise.all([
+                //awaitForClick(window).then(getDeviceOrientation),
+                effect.startVideo()
+            ])
+
+        }
+
         await Promise.all([
-            effect.startVideo().then(getDeviceOrientation).then().catch(),
+            permission(),
             createText(textTextureID, textAlpha),
             createCaptureMesh(captureTextureID)
         ])
