@@ -155,9 +155,6 @@ function onMouseDown(event) {
         let w = window.open(linkURLs[urlID], '_blank');
         console.log(w);
 
-        if (w == null) {
-            location.href = linkURLs[urlID];
-        }
     }
 }
 
@@ -423,54 +420,37 @@ async function loadData() {
 
         await setArray();
 
-        async function permission(){
+        async function getDeviceOrientation() {
 
-            // function awaitForClick(target) {
-            //     return new Promise(resolve => {
-            //         console.log("set click Event");
-            //         target.addEventListener("click", resolve, { once: true });
-            //     });
-            // };
-
-            async function getDeviceOrientation() {
-
-                if (!isMobile) {
-                    initZoomControls();
-                    initRotateControls();
-                    return
-                }
-            
-                if(!Boolean(window.DeviceOrientationEvent)){
-                    initZoomControls();
-                    initRotateControls();
-                    return
-                }
-            
-                rotateControls = new DeviceOrientationControls(rotateCamera);
-                await rotateControls.connect()
-                        .then((value) => {
-                            console.log("isEnableDeviceOrientation")
-                            initZoomControls();
-                            console.log("getDeviceOrientation fullfilled end")
-                        }, (value) => {
-                            initZoomControls();
-                            initRotateControls();
-                            console.log("getDeviceOrientation reject end")
-                        })
-                return;
-            
+            if (!isMobile) {
+                initZoomControls();
+                initRotateControls();
+                return
             }
-            
-            //await式は右辺のPromiseインスタンスがFulfilledまたはRejectedになるまでその場で非同期処理の完了を待ちます。
-            await Promise.all([
-                getDeviceOrientation(),
-                effect.startVideo()
-            ])
-
+        
+            if(!Boolean(window.DeviceOrientationEvent)){
+                initZoomControls();
+                initRotateControls();
+                return
+            }
+        
+            rotateControls = new DeviceOrientationControls(rotateCamera);
+            await rotateControls.connect()
+                    .then((value) => {
+                        console.log("isEnableDeviceOrientation")
+                        initZoomControls();
+                        console.log("getDeviceOrientation fullfilled end")
+                    }, (value) => {
+                        initZoomControls();
+                        initRotateControls();
+                        console.log("getDeviceOrientation reject end")
+                    })
+            return;
+        
         }
 
         await Promise.all([
-            permission(),
+            effect.startVideo().then(getDeviceOrientation()),
             createText(textTextureID, textAlpha),
             createCaptureMesh(captureTextureID)
         ])
