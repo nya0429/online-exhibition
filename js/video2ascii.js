@@ -7,6 +7,8 @@ let video2ascii = function (_charset, _asciiMap, _asciiTexture, options) {
     const asciiTexture = _asciiTexture;
 
     const video = document.getElementById("video");
+    //video.muted = true;
+    //video.playsinline = true;
     const videoTexture = new THREE.VideoTexture(video);
 
     const scene = new THREE.Scene();
@@ -34,7 +36,8 @@ let video2ascii = function (_charset, _asciiMap, _asciiTexture, options) {
     let bColor = !options['color'] ? false : options['color']; // nice but slows down rendering!
     let bInvert = !options['invert'] ? false : options['invert']; // black is white, white is black
 
-    let width, height;
+    let width
+    let height;
     let iWidth = 0;
     let iHeight = 0;
     let iPixel = 0;
@@ -278,8 +281,9 @@ let video2ascii = function (_charset, _asciiMap, _asciiTexture, options) {
 
     }
 
-    async function start() {
+    this.startVideo = async function() {
 
+        console.log("videostart",width,height);
         const constraints = {
             audio: false,
             video: {
@@ -306,30 +310,36 @@ let video2ascii = function (_charset, _asciiMap, _asciiTexture, options) {
 
     function gotStream(stream) {
 
+        const track = stream.getVideoTracks();
+        console.log(track[0].getSettings());
         window.stream = stream; // make stream available to console
         video.srcObject = stream;
         video.play();
-        asciiMesh.visible = true;
 
-        //videoTexture.needsUpdate = true;
     }
 
     function handleError(error) {
         console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
     }
 
-    function setAsciiSize() {
-
+    this.setSize = function (w, h) {
+        return new Promise(resolve => {
+        console.log("set size",w,h);
+        width = Math.round(w);
+        height = Math.round(h);
         iWidth = Math.round(width * fResolution);
         iHeight = Math.round(height * fResolution / 2);
         iPixel = iWidth * iHeight;
-
         oImgData = new Uint8Array(4 * iPixel);
-
         renderer.setSize(iWidth, iHeight);
+        resolve();
+        })
+    };
 
-        let textWidth = width / iWidth;
-        let plane = new THREE.PlaneBufferGeometry(textWidth, textWidth * 2);
+    this.setAsciiMesh = function() {
+
+        const textWidth = width / iWidth;
+        const plane = new THREE.PlaneBufferGeometry(textWidth, textWidth * 2);
         plane.translate(textWidth / 2, textWidth, 0);
         THREE.BufferGeometry.prototype.copy.call(asciiGeometry, plane);
 
@@ -340,7 +350,7 @@ let video2ascii = function (_charset, _asciiMap, _asciiTexture, options) {
         asciiGeometry.setAttribute('asciiInstanceURL', asciiInstanceURL);
 
         asciiMesh = new THREE.InstancedMesh(asciiGeometry, asciiMaterial, iWidth * iHeight)
-        asciiMesh.visible = false;
+        //asciiMesh.visible = false;
 
         let mat4 = new THREE.Matrix4();
         let i;
@@ -359,23 +369,9 @@ let video2ascii = function (_charset, _asciiMap, _asciiTexture, options) {
 
     }
 
-    this.setSize = function (w, h) {
-        width = Math.round(w);
-        height = Math.round(h);
-        let m = setAsciiSize();
-        start();
-        return m;
-    };
-
-    this.startVideo = start();
-
     this.asciifyImage = (textMesh) => {
 
         if (textMesh == null) {
-            return;
-        }
-
-        if (!asciiMesh.visible) {
             return;
         }
 
@@ -434,7 +430,6 @@ let video2ascii = function (_charset, _asciiMap, _asciiTexture, options) {
         asciiMesh.instanceColor.needsUpdate = true;
 
     }
-    console.log("finish video2ascii create")
 }
 
 export { video2ascii };

@@ -44,55 +44,50 @@ const isSupportDeviceOrientation = Boolean(window.DeviceOrientationEvent);
 let isOpenWindow = false;
 let linkURL = "";
 
-function setDeviceOrientation() {
+async function setDeviceOrientation() {
 
-    function getDeviceOrientation() {
+    async function getDeviceOrientation() {
         console.log("getDeviceOrientation start")
-        return new Promise((resolve, reject) => {
-            rotateControls = new DeviceOrientationControls(rotateCamera);
-            rotateControls.connect()
-                .then((value) => {
-                    console.log(rotateControls)
-                    isEnableDeviceOrientation = Boolean(rotateControls.deviceOrientation.returnValue);
-                    isEnableDeviceOrientation = true;
-                    initZoomControls();
-                    resolve();
-                    console.log("getDeviceOrientation end")
-                }, (value) => {
-                    initZoomControls();
-                    initRotateControls();
-                    reject();
-                    console.log("getDeviceOrientation end")
-                })
-            title.innerText = " It's all here. "
-        });
+        rotateControls = new DeviceOrientationControls(rotateCamera);
+        await rotateControls.connect()
+            .then((value) => {
+                console.log(rotateControls)
+                isEnableDeviceOrientation = Boolean(rotateControls.deviceOrientation.returnValue);
+                isEnableDeviceOrientation = true;
+                initZoomControls();
+                console.log("getDeviceOrientation fullfilled end")
+            }, (value) => {
+                initZoomControls();
+                initRotateControls();
+                console.log("getDeviceOrientation reject end")
+            })
+        title.innerText = " It's all here. "
+        return "Fulfilled"
     }
 
-    const awaitForClick = (target) => {
+    function awaitForClick(target) {
         return new Promise(resolve => {
+            console.log("set click Event");
             target.addEventListener("click", resolve, { once: true });
         });
     };
 
-    return awaitForClick(renderer.domElement).then(getDeviceOrientation)
+    //await式は右辺のPromiseインスタンスがFulfilledまたはRejectedになるまでその場で非同期処理の完了を待ちます。
+    await awaitForClick(renderer.domElement).then(getDeviceOrientation)
+    console.log("clicked")
+    return "Fulfilled"
+
+    // Async Functionが値をreturnした場合、その返り値を持つFulfilledなPromiseを返す
+    // Async FunctionがPromiseをreturnした場合、その返り値のPromiseをそのまま返す
+    // Async Function内で例外が発生した場合は、そのエラーを持つRejectedなPromiseを返す
+    // 何もreturnしていない場合はundefinedを返したのと同じ扱いとなる
 }
 
-const constraints = {
-    audio: false,
-    video: {
-        facingMode: "user",
-        width: window.innerWidth,
-        height: window.innerHeight,
-    },
-};
-
-//navigator.mediaDevices.getUserMedia(constraints).then().catch();
-
-
-init()
+window.addEventListener('load', init);
 function init() {
 
     isMobile = isSmartPhone();
+    setBaseSize();
 
     renderer = new THREE.WebGLRenderer({
         depth: false,
@@ -122,24 +117,23 @@ function init() {
 
     if (isMobile && isSupportDeviceOrientation) {
         title.innerText = 'touch to allow'
-        Promise.all([setDeviceOrientation(),loadData()])
+        Promise.all([setDeviceOrientation(), loadData()])
             .then(() => {
                 console.log("then")
-                initMobile();
                 animate();
             });
     } else {
         initZoomControls();
         initRotateControls();
-        loadData();
+        loadData().then(animate);
     }
 
-    window.onpageshow = function(event) {
-        if (event.persisted) {
-            onWindowResize();
-        }
-    };
-    
+    // window.onpageshow = function (event) {
+    //     if (event.persisted) {
+    //         onWindowResize();
+    //     }
+    // };
+
 }
 
 function initRotateControls() {
@@ -174,53 +168,20 @@ async function initZoomControls() {
 
 }
 
-function initMobile() {
-
-    mainLight.distance = cubeWidth;
-    asciiMesh = effect.setSize(cubeHalfWidth, cubeHalfHeight);
-    scene.add(asciiMesh)
-    cube.scale.set(cubeWidth, cubeHeight, cubeWidth);
-    resizeAsciis(cubeWidth, cubeHeight);
-
-}
-
 function onWindowResize() {
 
-    camera.fov = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-
-    zoomCamera.fov = camera.fov;
-    zoomCamera.aspect = camera.aspect;
-    zoomCamera.updateProjectionMatrix();
-
-    rotateCamera.fov = camera.fov;
-    rotateCamera.aspect = camera.aspect;
-    rotateCamera.updateProjectionMatrix();
-
-    if (!isMobile) {
-
-        cubeWidth = window.innerWidth;
-        cubeHeight = window.innerHeight;
-        cubeHalfWidth = cubeWidth / 2;
-        cubeHalfHeight = cubeHeight / 2;
-
+    setBaseSize();
+    setCameraViewport();
+    if(!isMobile){
+        effect.setSize(cubeHalfWidth, cubeHalfHeight).then(effect.startVideo());
         scene.remove(asciiMesh)
-        asciiMesh = effect.setSize(cubeHalfWidth, cubeHalfHeight);
+        asciiMesh = effect.setAsciiMesh();
         scene.add(asciiMesh)
-
-        cube.scale.set(cubeWidth, cubeHeight, cubeWidth);
-        pickplane.scale.set(cubeHalfWidth, cubeHalfHeight);
-        pickplane.position.set(0, 0, -cubeHalfWidth);
-
-        resizeAsciis(cubeWidth, cubeHeight);
         zoomControls.maxDistance = cubeHalfWidth;
-        mainLight.distance = cubeWidth;
-
+        setObjectTransform();
     }
 
     renderer.setSize(window.innerWidth, window.innerHeight);
-    console.log("finish onResize")
 
 }
 
@@ -277,6 +238,8 @@ function onMouseDown(event) {
         if (w == null) {
             location.href = linkURLs[urlID];
         }
+        mouse.x = -2;
+        mouse.y = -2;
     }
 }
 
@@ -372,16 +335,7 @@ async function loadData() {
 
         asciinum += col[0].length
     }
-
     //console.log(asciinum);
-
-    async function createEffect(texture) {
-        effect = new video2ascii(charset, asciiMap, texture, {
-            color: true, invert: true,
-            resolution: isMobile ? 0.08 : 0.12
-        })
-    }
-
 
     function loadBasisUTexture(path) {
         const loader = new BasisTextureLoader();
@@ -397,190 +351,248 @@ async function loadData() {
         });
     }
 
+    async function createText(texture, textureID, alpha) {
+
+        let plane = new THREE.PlaneBufferGeometry(textWidth, textWidth * 2);
+        let geometry = new THREE.InstancedBufferGeometry();
+        THREE.BufferGeometry.prototype.copy.call(geometry, plane);
+    
+        let material = new THREE.MeshBasicMaterial({
+            map: texture,
+            side: THREE.DoubleSide,
+            transparent: true,
+            //color: 0x000000,
+        });
+    
+        let commonChunk = `
+        attribute float textureID;
+        attribute float alpha;
+        varying float vAlpha;
+        #include <common>
+        `
+        let uvChunk = `
+        #ifdef USE_UV
+        vUv = ( uvTransform * vec3( uv, 1 ) ).xy;
+        vUv.x = (mod(textureID,12.0)+vUv.x)/12.0;
+        vUv.y = (floor(textureID/12.0)+1.0-vUv.y)/6.0;
+    
+        #endif
+        `
+        let color_pars_vertex = `
+        #if defined( USE_COLOR ) || defined( USE_INSTANCING_COLOR )
+        varying vec3 vColor;
+        #endif
+        `
+        let color_vertex = `
+        #if defined( USE_COLOR ) || defined( USE_INSTANCING_COLOR )
+        vColor = vec3( 1.0 );
+        #endif
+        #ifdef USE_COLOR
+        vColor.xyz *= color.xyz;
+        #endif
+        #ifdef USE_INSTANCING_COLOR
+        vColor.xyz *= instanceColor.xyz;
+        #endif
+    
+        vAlpha = alpha;
+        `
+        let color_pars_fragment = `
+        #ifdef USE_COLOR
+        varying vec3 vColor;
+        #endif
+        varying float vAlpha;
+        `
+        let color_fragment = `
+        #ifdef USE_COLOR
+        diffuseColor.rgb *= vColor;
+        #endif
+        diffuseColor.a *= vAlpha;
+        `
+    
+        material.onBeforeCompile = function (shader) {
+    
+            shader.vertexShader = shader.vertexShader
+                .replace('#include <common>', commonChunk)
+                .replace('#include <uv_vertex>', uvChunk)
+                .replace('#include <color_pars_vertex>', color_pars_vertex)
+                .replace('#include <color_vertex>', color_vertex)
+    
+            shader.fragmentShader = shader.fragmentShader
+                .replace('#include <color_pars_fragment>', color_pars_fragment)
+                .replace('#include <color_fragment>', color_fragment)
+        };
+    
+        geometry.setAttribute('textureID', new THREE.InstancedBufferAttribute(new Float32Array(textureID), 1));
+        geometry.setAttribute('alpha', new THREE.InstancedBufferAttribute(new Float32Array(alpha), 1));
+    
+        textMesh = new THREE.InstancedMesh(geometry, material, textureID.length);
+    
+        let black = new THREE.Color(0, 0, 0);
+        for (let i = 0; i < textMesh.count; i++) {
+            textMesh.setColorAt(i, black);
+        }
+        textMesh.instanceColor.needsUpdate = true;
+    
+        scene.add(textMesh);
+        //console.log("finish create Text")
+
+        return
+    
+    }
+
+    async function createEffect(texture) {
+
+        effect = new video2ascii(charset, asciiMap, texture, {
+            color: true, invert: true,
+            resolution: isMobile ? 0.08 : 0.12
+        })
+        await effect.setSize(cubeHalfWidth, cubeHalfHeight)
+        await effect.startVideo()
+        console.log("init video")
+        return
+    }
+
+    async function createCaptureMesh(textureID) {
+
+        let plane = new THREE.PlaneBufferGeometry(captureWidth, captureWidth * 3 / 4);
+    
+        plane.translate(0, captureWidth / 2, 0)
+        let geometry = new THREE.InstancedBufferGeometry();
+        THREE.BufferGeometry.prototype.copy.call(geometry, plane);
+    
+        let material = new THREE.MeshBasicMaterial({
+            side: THREE.DoubleSide,
+            depthWrite: false,
+            depthTest: false,
+        });
+    
+        let commonChunk = `
+        attribute float textureID;
+        #include <common>
+        `
+        let uvChunk = `
+        #ifdef USE_UV
+        vUv = ( uvTransform * vec3( uv, 1 ) ).xy;
+        vUv.x = (mod(textureID, 16.0)+vUv.x);
+        vUv.y = (floor(textureID/16.0)+1.0-vUv.y);
+        vUv = vUv/16.0;
+        #endif
+        `
+
+        material.onBeforeCompile = function (shader) {
+            shader.vertexShader = shader.vertexShader
+                .replace('#include <common>', commonChunk)
+                .replace('#include <uv_vertex>', uvChunk)
+        };
+    
+        geometry.setAttribute('textureID', new THREE.InstancedBufferAttribute(new Uint8Array(textureID), 1));
+        captureMesh = new THREE.InstancedMesh(geometry, material, textureID.length);
+        scene.add(captureMesh); 
+        
+        return
+    }
+    
     async function createAscii() {
         const texture = await loadBasisUTexture("./basis/asciiAtlas1024.basis");
         await Promise.all([
             createText(texture, textTextureID, textAlpha),
             createEffect(texture),
         ]);
+        console.log("finish create Ascii")
+        return
     }
 
     async function createCapture() {
         const texture = await loadBasisUTexture("./basis/texture.basis");
         texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-        await createCaptures(captureTextureID)
+        await createCaptureMesh(captureTextureID)
         captureMesh.material.map = texture;
         captureMesh.material.needsUpdate = texture;
+        console.log("finish create Capture");
+        return
     }
 
-    await Promise.all([
-        createWhiteCube(),
-        createCapture(),
-        createAscii()]);
+    async function createWhiteCube() {
 
-    if (!isMobile) {
-        onWindowResize();
-        animate();
+        const geometry = new THREE.BoxBufferGeometry(1, 1, 1);
+        const material = new THREE.MeshPhongMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+        cube = new THREE.Mesh(geometry, material);
+        scene.add(cube);
+    
+        const geometry2 = new THREE.PlaneBufferGeometry(1, 1);
+        const material2 = new THREE.MeshPhongMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+        pickplane = new THREE.Mesh(geometry2, material2);
+        scene.add(pickplane);
 
-    } else if (!isSupportDeviceOrientation) {
-        initMobile();
-        animate();
-    }
+        return
+    }    
+
+    await Promise.all([createWhiteCube(),createCapture(),createAscii()]);
+
+    console.log("create all")
+    setCameraViewport();
+    setObjectTransform();
+    asciiMesh = effect.setAsciiMesh();
+    scene.add(asciiMesh)
 
     window.addEventListener('resize', onWindowResize, false);
     document.addEventListener('mousemove', onMouseMove, false);
-    document.addEventListener('mousedown', comeback, true);
 
     console.log("finish load CSV")
+    return
 
 }
 
-async function createWhiteCube() {
-    const geometry = new THREE.BoxBufferGeometry(1, 1, 1);
-    const material = new THREE.MeshPhongMaterial({ color: 0xffffff, side: THREE.DoubleSide });
-    cube = new THREE.Mesh(geometry, material);
-    scene.add(cube);
+function onFocus(){
 
-    const geometry2 = new THREE.PlaneBufferGeometry(1, 1);
-    const material2 = new THREE.MeshPhongMaterial({ color: 0xffffff, side: THREE.DoubleSide });
-    pickplane = new THREE.Mesh(geometry2, material2);
-    scene.add(pickplane);
-    //console.log("finish create whitecube");
-}
-
-async function createCaptures(textureID) {
-
-    let plane = new THREE.PlaneBufferGeometry(captureWidth, captureWidth * 3 / 4);
-
-    plane.translate(0, captureWidth / 2, 0)
-    let geometry = new THREE.InstancedBufferGeometry();
-    THREE.BufferGeometry.prototype.copy.call(geometry, plane);
-
-    let material = new THREE.MeshBasicMaterial({
-        side: THREE.DoubleSide,
-        depthWrite: false,
-        depthTest: false,
-    });
-
-    let commonChunk = `
-    attribute float textureID;
-    #include <common>
-    `
-    let uvChunk = `
-    #ifdef USE_UV
-    vUv = ( uvTransform * vec3( uv, 1 ) ).xy;
-    vUv.x = (mod(textureID, 16.0)+vUv.x);
-    vUv.y = (floor(textureID/16.0)+1.0-vUv.y);
-    vUv = vUv/16.0;
-    #endif
-    `
-    let beginVertexChunk = `
-    vec3 transformed = vec3( position );
-    sampler2D t = textureArray[1];
-    //transformed = instancePos+transformed;
-    `
-    material.onBeforeCompile = function (shader) {
-        shader.vertexShader = shader.vertexShader
-            .replace('#include <common>', commonChunk)
-            .replace('#include <uv_vertex>', uvChunk)
-        //.replace('#include <begin_vertex>', beginVertexChunk);
-    };
-
-    geometry.setAttribute('textureID', new THREE.InstancedBufferAttribute(new Uint8Array(textureID), 1));
-    captureMesh = new THREE.InstancedMesh(geometry, material, textureID.length);
-    scene.add(captureMesh);
-    console.log("finish create captureMesh");
 
 }
 
-async function createText(texture, textureID, alpha) {
+function onBlur(){
 
-    let plane = new THREE.PlaneBufferGeometry(textWidth, textWidth * 2);
-    let geometry = new THREE.InstancedBufferGeometry();
-    THREE.BufferGeometry.prototype.copy.call(geometry, plane);
+    
+}
 
-    let material = new THREE.MeshBasicMaterial({
-        map: texture,
-        side: THREE.DoubleSide,
-        transparent: true,
-        //color: 0x000000,
-    });
+function setBaseSize(){
 
-    let commonChunk = `
-    attribute float textureID;
-    attribute float alpha;
-	varying float vAlpha;
-    #include <common>
-    `
-    let uvChunk = `
-    #ifdef USE_UV
-    vUv = ( uvTransform * vec3( uv, 1 ) ).xy;
-    vUv.x = (mod(textureID,12.0)+vUv.x)/12.0;
-    vUv.y = (floor(textureID/12.0)+1.0-vUv.y)/6.0;
-
-    #endif
-    `
-    let color_pars_vertex = `
-    #if defined( USE_COLOR ) || defined( USE_INSTANCING_COLOR )
-    varying vec3 vColor;
-    #endif
-    `
-    let color_vertex = `
-    #if defined( USE_COLOR ) || defined( USE_INSTANCING_COLOR )
-	vColor = vec3( 1.0 );
-    #endif
-    #ifdef USE_COLOR
-	vColor.xyz *= color.xyz;
-    #endif
-    #ifdef USE_INSTANCING_COLOR
-	vColor.xyz *= instanceColor.xyz;
-    #endif
-
-    vAlpha = alpha;
-    `
-    let color_pars_fragment = `
-    #ifdef USE_COLOR
-    varying vec3 vColor;
-    #endif
-    varying float vAlpha;
-    `
-    let color_fragment = `
-    #ifdef USE_COLOR
-    diffuseColor.rgb *= vColor;
-    #endif
-    diffuseColor.a *= vAlpha;
-    `
-
-    material.onBeforeCompile = function (shader) {
-
-        shader.vertexShader = shader.vertexShader
-            .replace('#include <common>', commonChunk)
-            .replace('#include <uv_vertex>', uvChunk)
-            .replace('#include <color_pars_vertex>', color_pars_vertex)
-            .replace('#include <color_vertex>', color_vertex)
-
-        shader.fragmentShader = shader.fragmentShader
-            .replace('#include <color_pars_fragment>', color_pars_fragment)
-            .replace('#include <color_fragment>', color_fragment)
-    };
-
-    geometry.setAttribute('textureID', new THREE.InstancedBufferAttribute(new Float32Array(textureID), 1));
-    geometry.setAttribute('alpha', new THREE.InstancedBufferAttribute(new Float32Array(alpha), 1));
-
-    textMesh = new THREE.InstancedMesh(geometry, material, textureID.length);
-
-    let black = new THREE.Color(0, 0, 0);
-    for (let i = 0; i < textMesh.count; i++) {
-        textMesh.setColorAt(i, black);
+    if(isMobile){
+        return;
     }
-    textMesh.instanceColor.needsUpdate = true;
 
-    scene.add(textMesh);
-    console.log("finish create Text")
+    cubeWidth = window.innerWidth;
+    cubeHeight = window.innerHeight;
+    cubeHalfWidth = cubeWidth / 2;
+    cubeHalfHeight = cubeHeight / 2;
 
 }
 
-function resizeAsciis(w, h) {
+function setCameraViewport(){
+
+    camera.fov = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+
+    zoomCamera.fov = camera.fov;
+    zoomCamera.aspect = camera.aspect;
+    zoomCamera.updateProjectionMatrix();
+
+    rotateCamera.fov = camera.fov;
+    rotateCamera.aspect = camera.aspect;
+    rotateCamera.updateProjectionMatrix();
+
+}
+
+function setObjectTransform(){
+
+    mainLight.distance = cubeWidth;
+    cube.scale.set(cubeWidth, cubeHeight, cubeWidth);
+    pickplane.scale.set(cubeHalfWidth, cubeHalfHeight);
+    pickplane.position.set(0, 0, -cubeHalfWidth);
+    arrangeObjects(cubeWidth, cubeHeight);
+
+}
+
+function arrangeObjects(w, h) {
 
     const captureSum = displayURLs.length;
     const numPerWall = Math.ceil(captureSum / 3);
