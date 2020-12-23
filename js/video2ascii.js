@@ -96,7 +96,6 @@ let video2ascii = function (_charset, _asciiMap, options) {
 
     this.setAsciiTexture = (texture)=>{
 
-        console.log(asciiMaterial)
         asciiMaterial.map = texture;
 
     }

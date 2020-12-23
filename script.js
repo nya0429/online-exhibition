@@ -269,9 +269,7 @@ async function getDeviceOrientation() {
         return
     }
 
-    const result = confirm('次の処理を続けますか？');
-
-    if(result){
+    if(confirm('次の処理を続けますか？')){
         rotateControls = new DeviceOrientationControls(rotateCamera);
         await rotateControls.connect()
             .then((value) => {
