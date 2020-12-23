@@ -95,11 +95,12 @@ async function initZoomControls() {
     renderer.domElement.addEventListener('touchstart', onTouchStart, true);
     renderer.domElement.addEventListener('mousedown', onMouseDown, true);
 
-    zoomCamera.position.set(0, 0, cubeHalfWidth);
+    const dist = isMobile ? Math.min(document.documentElement.clientHeight, document.documentElement.clientWidth)/2 : cubeHalfWidth;
+    zoomCamera.position.set(0, 0, dist);
     zoomControls = new OrbitControls(zoomCamera, renderer.domElement);
     zoomControls.enablePan = false;
     zoomControls.enableRotate = false;
-    zoomControls.maxDistance = isMobile ? Math.min(document.documentElement.clientHeight, document.documentElement.clientWidth)/2 : cubeHalfWidth;
+    zoomControls.maxDistance = dist;
     zoomControls.enableDamping = true;
     zoomControls.dampingFactor = 0.1;
     //console.log("finish initZoomControls")
