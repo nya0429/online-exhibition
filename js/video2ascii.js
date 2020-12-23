@@ -1,14 +1,11 @@
-import * as THREE from "https://unpkg.com/three@0.122.0/build/three.module.js";
+import * as THREE from "https://unpkg.com/three@0.123.0/build/three.module.js";
 
 let video2ascii = function (_charset, _asciiMap, options) {
 
     const charset = _charset;
     const asciiMap = _asciiMap;
-    // const asciiTexture = _asciiTexture;
 
     const video = document.getElementById("video");
-    //video.muted = true;
-    //video.playsinline = true;
     const videoTexture = new THREE.VideoTexture(video);
 
     const scene = new THREE.Scene();
@@ -19,7 +16,7 @@ let video2ascii = function (_charset, _asciiMap, options) {
         depth: false,
         stencil: false,
     });
-    renderer.setSize(window.innerWidth / 2, window.innerHeight / 2);
+    renderer.setSize(document.documentElement.clientWidth / 2, document.documentElement.clientHeight / 2);
 
     const webGLCtx = renderer.getContext();
     let oImgData = [];
@@ -32,15 +29,12 @@ let video2ascii = function (_charset, _asciiMap, options) {
 
     if (!options) options = {};
     let fResolution = !options['resolution'] ? 0.15 : options['resolution']; // Higher for more details
-    let iScale = !options['scale'] ? 1 : options['scale'];
-    let bColor = !options['color'] ? false : options['color']; // nice but slows down rendering!
     let bInvert = !options['invert'] ? false : options['invert']; // black is white, white is black
 
-    let width
+    let width;
     let height;
     let iWidth = 0;
     let iHeight = 0;
-    let iPixel = 0;
 
     createVideoScene();
     createAsciiMaterial();
@@ -185,8 +179,7 @@ let video2ascii = function (_charset, _asciiMap, options) {
         height = Math.round(h);
         iWidth = Math.round(width * fResolution);
         iHeight = Math.round(height * fResolution / 2);
-        iPixel = iWidth * iHeight;
-        oImgData = new Uint8Array(4 * iPixel);
+        oImgData = new Uint8Array(4 * iWidth * iHeight);
         renderer.setSize(iWidth, iHeight);
         resolve();
         })
@@ -206,7 +199,6 @@ let video2ascii = function (_charset, _asciiMap, options) {
         asciiGeometry.setAttribute('asciiInstanceURL', asciiInstanceURL);
 
         asciiMesh = new THREE.InstancedMesh(asciiGeometry, asciiMaterial, iWidth * iHeight)
-        //asciiMesh.visible = false;
 
         let mat4 = new THREE.Matrix4();
         let i;
@@ -288,7 +280,7 @@ let video2ascii = function (_charset, _asciiMap, options) {
     }
 
     function resumeVideo(){
-        console.log("on focus")
+        //console.log("on focus")
         video.play();
     }
 

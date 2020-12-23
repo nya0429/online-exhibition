@@ -27,12 +27,12 @@ const captureWidth = 60;
 const areaWidth = 120;
 const areaHeight = 120;
 
-const mobileSize = Math.max(window.innerHeight, window.innerWidth);
+const mobileSize = Math.max(document.documentElement.clientHeight, document.documentElement.clientWidth);
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2(1, 1);
 
-let cubeWidth = window.innerWidth;
-let cubeHeight = window.innerHeight;
+let cubeWidth = document.documentElement.clientWidth;
+let cubeHeight = document.documentElement.clientHeight;
 let cubeHalfWidth = cubeWidth / 2;
 let cubeHalfHeight = cubeHeight / 2;
 
@@ -58,17 +58,17 @@ function init() {
     renderer.domElement.style.left = "0px"
     renderer.domElement.style.top = "0px"
     renderer.domElement.style.zIndex = "-2"
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(document.documentElement.clientWidth, document.documentElement.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     document.body.appendChild(renderer.domElement);
-    const deg = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
-    camera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
+    const deg = Math.atan(document.documentElement.clientHeight / document.documentElement.clientWidth) * 2 * 180 / Math.PI;
+    camera = new THREE.PerspectiveCamera(deg, document.documentElement.clientWidth / document.documentElement.clientHeight, 0.1, 3000);
     //camera.rotateX(Math.PI / 2)
-    rotateCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
-    zoomCamera = new THREE.PerspectiveCamera(deg, window.innerWidth / window.innerHeight, 0.1, 3000);
+    rotateCamera = new THREE.PerspectiveCamera(deg, document.documentElement.clientWidth / document.documentElement.clientHeight, 0.1, 3000);
+    zoomCamera = new THREE.PerspectiveCamera(deg, document.documentElement.clientWidth / document.documentElement.clientHeight, 0.1, 3000);
     scene = new THREE.Scene();
     // lights
-    mainLight = new THREE.PointLight(0xcccccc, 2, window.innerWidth, 1);
+    mainLight = new THREE.PointLight(0xcccccc, 2, document.documentElement.clientWidth, 1);
     scene.add(mainLight);
 
     loadData().then(animate);
@@ -86,7 +86,7 @@ function initRotateControls() {
     rotateControls.dampingFactor = 0.05;
     rotateControls.minPolarAngle = Math.PI / 3;
     rotateControls.maxPolarAngle = Math.PI - rotateControls.minPolarAngle;
-    rotateControls.addEventListener('start', () => { rotateControls.enabled = true }, true);
+    //console.log("finish initRotateControls")
 
 }
 
@@ -99,11 +99,10 @@ async function initZoomControls() {
     zoomControls = new OrbitControls(zoomCamera, renderer.domElement);
     zoomControls.enablePan = false;
     zoomControls.enableRotate = false;
-    zoomControls.maxDistance = cubeHalfWidth;
+    zoomControls.maxDistance = isMobile ? mobileSize : cubeHalfWidth;
     zoomControls.enableDamping = true;
     zoomControls.dampingFactor = 0.1;
-    zoomControls.addEventListener('start', () => { zoomControls.enabled = true }, true);
-    console.log("finish initZoomControls")
+    //console.log("finish initZoomControls")
 
 }
 
@@ -114,37 +113,34 @@ function onWindowResize() {
     if (!isMobile) {
         effect.setSize(cubeHalfWidth, cubeHalfHeight).then(effect.startVideo());
         scene.remove(asciiMesh)
+        asciiMesh.geometry.dispose();
         asciiMesh = effect.setAsciiMesh();
         scene.add(asciiMesh)
         zoomControls.maxDistance = cubeHalfWidth;
         setObjectTransform();
     }
 
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(document.documentElement.clientWidth, document.documentElement.clientHeight);
 
 }
 
 function onMouseMove(event) {
 
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+    mouse.x = (event.clientX / document.documentElement.clientWidth) * 2 - 1;
+    mouse.y = - (event.clientY / document.documentElement.clientHeight) * 2 + 1;
 
 }
 
 function onTouchStart(event) {
 
-    console.log("onTouchStart")
+    //console.log("onTouchStart")
+    mouse.x = (event.touches[0].clientX / document.documentElement.clientWidth) * 2 - 1;
+    mouse.y = - (event.touches[0].clientY / document.documentElement.clientHeight) * 2 + 1;
     onMouseDown(event);
+
 }
 
 function onMouseDown(event) {
-
-    console.log("onMouseDown")
-    console.log(event)
-
-    if (!asciiMesh.visible) {
-        return;
-    }
 
     raycaster.setFromCamera(mouse, camera);
     const intersection = raycaster.intersectObject(asciiMesh);
@@ -152,9 +148,9 @@ function onMouseDown(event) {
 
         const instanceId = intersection[0].instanceId;
         const urlID = asciiMesh.geometry.attributes.asciiInstanceURL.getX(instanceId);
-        const charID = asciiMesh.geometry.attributes.asciiInstanceUV.getX(instanceId);
-        console.log(charID)
-        console.log(charset[charID], linkURLs[urlID])
+        //const charID = asciiMesh.geometry.attributes.asciiInstanceUV.getX(instanceId);
+        //console.log(charID)
+        //console.log(charset[charID], linkURLs[urlID])
 
         let w = window.open(linkURLs[urlID], '_blank');
         console.log(w);
@@ -162,8 +158,6 @@ function onMouseDown(event) {
         if (w == null) {
             location.href = linkURLs[urlID];
         }
-        mouse.x = -2;
-        mouse.y = -2;
     }
 }
 
@@ -180,7 +174,7 @@ function animate() {
     rotateControls.update();
     zoomControls.update();
     zoomCamera.getWorldPosition(camera.position)
-    camera.position.z -= cubeHalfWidth
+    camera.position.z -= zoomControls.maxDistance;
     rotateCamera.getWorldQuaternion(scene.quaternion)
     scene.quaternion.invert();
 
@@ -190,7 +184,6 @@ function animate() {
 }
 
 async function loadData() {
-
 
     let asciinum = 0;
     let captureTextureID = [];
@@ -438,6 +431,7 @@ async function loadData() {
             //         target.addEventListener("click", resolve, { once: true });
             //     });
             // };
+
             async function getDeviceOrientation() {
 
                 if (!isMobile) {
@@ -524,8 +518,8 @@ function setBaseSize() {
         return;
     }
 
-    cubeWidth = window.innerWidth;
-    cubeHeight = window.innerHeight;
+    cubeWidth = document.documentElement.clientWidth;
+    cubeHeight = document.documentElement.clientHeight;
     cubeHalfWidth = cubeWidth / 2;
     cubeHalfHeight = cubeHeight / 2;
 
@@ -533,8 +527,8 @@ function setBaseSize() {
 
 function setCameraViewport() {
 
-    camera.fov = Math.atan(window.innerHeight / window.innerWidth) * 2 * 180 / Math.PI;
-    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.fov = Math.atan(document.documentElement.clientHeight / document.documentElement.clientWidth) * 2 * 180 / Math.PI;
+    camera.aspect = document.documentElement.clientWidth / document.documentElement.clientHeight;
     camera.updateProjectionMatrix();
 
     zoomCamera.fov = camera.fov;
@@ -567,16 +561,18 @@ function arrangeObjects(w, h) {
     const halfH = wallHeight / 2;
     const depth = w / 2;
 
-    //
     const tmpWallHeight = wallHeight * areaWidth / areaHeight;
-    let edge = Math.floor(Math.sqrt(tmpWallHeight * wallWidth / numPerWall));
+    let edge = Math.sqrt(tmpWallHeight * wallWidth / numPerWall);
     let numPerWidth = Math.floor(wallWidth / edge);
     let numPerHeight = Math.floor(tmpWallHeight / edge);
     let tmpnum = numPerWidth * numPerHeight;
 
     while (tmpnum < numPerWall) {
-        edge--;
+        edge = edge - 0.1;
         numPerWidth = Math.floor(wallWidth / edge);
+        if(numPerWidth*numPerHeight>=numPerWall){
+            break;
+        }
         numPerHeight = Math.floor(tmpWallHeight / edge);
         tmpnum = numPerWidth * numPerHeight;
     }
@@ -593,17 +589,18 @@ function arrangeObjects(w, h) {
     let rotateMtx = new THREE.Matrix4();
     let scaleMtx = new THREE.Matrix4().makeScale(edge / areaWidth, edge / areaWidth, 1);
 
-    let wall, index, y;
+    let index;
     let counter = 0;
 
     for (let i = 0; i < displayURLs.length; i++) {
         matrix = matrix.identity();
-        wall = i % 3;
         index = Math.floor(i / 3);
-        y = Math.floor(index / numPerWidth);
 
-        rotateMtx.makeRotationY(Math.PI / 2 * (wall + 1));
-        translateMtx.makeTranslation((index % numPerWidth) * spaceW - halfW + paddingX, halfH - paddingY - y * spaceH, -depth);
+        rotateMtx.makeRotationY(Math.PI / 2 * (i % 3 + 1));
+        translateMtx.makeTranslation(
+            (index % numPerWidth) * spaceW - halfW + paddingX, 
+            halfH - paddingY - Math.floor(index / numPerWidth) * spaceH,
+             -depth);
         matrix.multiply(rotateMtx);
         matrix.multiply(translateMtx);
         matrix.multiply(scaleMtx);
@@ -611,10 +608,11 @@ function arrangeObjects(w, h) {
 
         for (let j = 0; j < displayURLs[i].length; j++) {
             matrix2 = matrix2.identity();
-            let x = (j % textPerRow) * textWidth - textBoxWidth / 2 + textWidth / 2;
-            let y = -(Math.floor(j / textPerRow) * textHeight + textLineHeight);
             matrix2.multiply(matrix);
-            matrix2.multiply(translateMtx.makeTranslation(x, y, 0));
+            matrix2.multiply(translateMtx.makeTranslation(
+                (j % textPerRow) * textWidth - textBoxWidth / 2 + textWidth / 2, 
+                -(Math.floor(j / textPerRow) * textHeight + textLineHeight),
+                 0));
             textMesh.setMatrixAt(counter, matrix2);
             counter++;
         }

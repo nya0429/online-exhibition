@@ -22,7 +22,6 @@ var OrbitControls = function ( object, domElement ) {
 
 	this.object = object;
 	this.domElement = domElement;
-	console.log(domElement);
 
 	// Set to false to disable this control
 	this.enabled = true;
@@ -779,7 +778,7 @@ var OrbitControls = function ( object, domElement ) {
 
 	function onPointerDown( event ) {
 
-		console.log("onPointerDown in OrbitControls")
+		//console.log("onPointerDown in OrbitControls")
 
 		if ( scope.enabled === false ) return;
 
@@ -1015,7 +1014,7 @@ var OrbitControls = function ( object, domElement ) {
 
 		if ( scope.enabled === false ) return;
 
-		console.log("onTouchStart in OrbitControls")
+		//console.log("onTouchStart in OrbitControls")
 
 		scope.dispatchEvent(touchStartEvent)
 		//event.preventDefault();
