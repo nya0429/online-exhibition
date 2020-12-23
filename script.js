@@ -263,20 +263,35 @@ async function getDeviceOrientation() {
         return
     }
 
-    rotateControls = new DeviceOrientationControls(rotateCamera);
-    await rotateControls.connect()
-        .then((value) => {
-            console.log(rotateControls)
-            isEnableDeviceOrientation = Boolean(rotateControls.deviceOrientation.returnValue);
-            isEnableDeviceOrientation = true;
-            initZoomControls();
-            console.log("getDeviceOrientation fullfilled end")
-        }, (value) => {
-            initZoomControls();
-            initRotateControls();
-            console.log("getDeviceOrientation reject end")
-        })
-    return
+    if(!Boolean(window.DeviceOrientationEvent)){
+        initZoomControls();
+        initRotateControls();
+        return
+    }
+
+    const result = confirm('次の処理を続けますか？');
+
+    if(result){
+        rotateControls = new DeviceOrientationControls(rotateCamera);
+        await rotateControls.connect()
+            .then((value) => {
+                console.log(rotateControls)
+                isEnableDeviceOrientation = Boolean(rotateControls.deviceOrientation.returnValue);
+                isEnableDeviceOrientation = true;
+                initZoomControls();
+                console.log("getDeviceOrientation fullfilled end")
+            }, (value) => {
+                initZoomControls();
+                initRotateControls();
+                console.log("getDeviceOrientation reject end")
+            })
+        return;
+    }else{
+        initZoomControls();
+        initRotateControls();
+        return;
+    }
+
 }
 async function loadData() {
 
