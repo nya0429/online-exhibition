@@ -1,10 +1,10 @@
 import * as THREE from "https://unpkg.com/three@0.122.0/build/three.module.js";
 
-let video2ascii = function (_charset, _asciiMap, _asciiTexture, options) {
+let video2ascii = function (_charset, _asciiMap, options) {
 
     const charset = _charset;
     const asciiMap = _asciiMap;
-    const asciiTexture = _asciiTexture;
+    // const asciiTexture = _asciiTexture;
 
     const video = document.getElementById("video");
     //video.muted = true;
@@ -43,156 +43,7 @@ let video2ascii = function (_charset, _asciiMap, _asciiTexture, options) {
     let iPixel = 0;
 
     createVideoScene();
-    _createAsciiMaterial();
-
-    this.createAsciiMaterial = async function (asciiTexture) {
-
-        let material = new THREE.MeshBasicMaterial({
-            map: asciiTexture,
-            side: THREE.DoubleSide,
-            transparent: true,
-            //color: 0x000000,
-        });
-
-        let commonChunk = `
-        attribute float asciiInstanceUV;
-        #include <common>
-        `
-        let uvChunk = `
-        #ifdef USE_UV
-        vUv = ( uvTransform * vec3( uv, 1 ) ).xy;
-        //vUv.x = (asciiInstanceUV+vUv.x)/`+ charset.length + `.0;
-        vUv.x = (mod(asciiInstanceUV,12.0)+vUv.x)/12.0;
-        vUv.y = (floor(asciiInstanceUV/12.0)+1.0-vUv.y)/6.0;
-
-        #endif
-        `
-        let color_pars_vertex = `
-        #if defined( USE_COLOR ) || defined( USE_INSTANCING_COLOR )
-        varying vec3 vColor;
-        #endif
-        `
-        let color_vertex = `
-        #if defined( USE_COLOR ) || defined( USE_INSTANCING_COLOR )
-        vColor = vec3( 1.0 );
-        #endif
-        #ifdef USE_COLOR
-        vColor.xyz *= color.xyz;
-        #endif
-        #ifdef USE_INSTANCING_COLOR
-        vColor.xyz *= instanceColor.xyz;
-        #endif
-        `
-        let color_pars_fragment = `
-        #ifdef USE_COLOR
-        varying vec3 vColor;
-        #endif
-        `
-        let color_fragment = `
-        #ifdef USE_COLOR
-        diffuseColor.rgb *= vColor;
-        #endif
-        `
-
-        material.onBeforeCompile = function (shader) {
-
-            shader.vertexShader = shader.vertexShader
-                .replace('#include <common>', commonChunk)
-                .replace('#include <uv_vertex>', uvChunk)
-                .replace('#include <color_pars_vertex>', color_pars_vertex)
-                .replace('#include <color_vertex>', color_vertex)
-
-            shader.fragmentShader = shader.fragmentShader
-                .replace('#include <color_pars_fragment>', color_pars_fragment)
-                .replace('#include <color_fragment>', color_fragment)
-        };
-
-        return;
-
-        geometry.setAttribute('textureID', new THREE.InstancedBufferAttribute(new Float32Array(textureID), 1));
-        geometry.setAttribute('alpha', new THREE.InstancedBufferAttribute(new Float32Array(alpha), 1));
-
-        textMesh = new THREE.InstancedMesh(geometry, material, textureID.length);
-
-        const vs = `
-        #include <common>
-        varying vec2 vUv;
-	    uniform mat3 uvTransform;
-        attribute float asciiInstanceUV;
-
-        #include <color_pars_vertex>
-        #include <logdepthbuf_pars_vertex>
-        
-        void main() {
-        
-            vUv = ( uvTransform * vec3( uv, 1 ) ).xy;
-            vUv.x = (asciiInstanceUV+vUv.x)/`+ charset.length + `.0;
-
-            #include <color_vertex>                
-            #include <begin_vertex>
-            #include <project_vertex>
-            #include <logdepthbuf_vertex>
-            #include <worldpos_vertex>        
-        }
-        `;
-
-        const fs = `
-        uniform vec3 diffuse;
-        uniform float opacity;
-                
-        #include <common>
-        #include <dithering_pars_fragment>
-        #include <color_pars_fragment>
-    	varying vec2 vUv;
-        uniform sampler2D map;
-        uniform sampler2D ascii;
-        #include <logdepthbuf_pars_fragment>
-        
-        void main() {
-                
-            vec4 diffuseColor = vec4( diffuse, opacity );
-        
-            #include <logdepthbuf_fragment>
-            vec4 texelColor = texture2D( ascii, vUv );
-            //texelColor = mapTexelToLinear( texelColor );
-            //diffuseColor *= texelColor;
-            //diffuseColor.a = 1.0;
-            #include <color_fragment>
-        
-            ReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );
-            reflectedLight.indirectDiffuse += vec3( 1.0 );
-            reflectedLight.indirectDiffuse *= diffuseColor.rgb;
-        
-            vec3 outgoingLight = reflectedLight.indirectDiffuse;
-                
-            gl_FragColor = vec4( outgoingLight, diffuseColor.a );
-        
-            #include <encodings_fragment>
-            #include <premultiplied_alpha_fragment>
-            #include <dithering_fragment>
-        
-        }
-        `;
-
-        let uniforms = THREE.UniformsUtils.clone(THREE.ShaderLib.basic.uniforms)
-        uniforms.map.value = videoTexture;
-        //videoTexture.needsUpdate = true;
-
-        uniforms['ascii'] = { value: asciiTexture }
-        asciiTexture.needsUpdate = true;
-
-        console.log(uniforms)
-        asciiMaterial = new THREE.ShaderMaterial({
-            side: THREE.DoubleSide,
-            transparent: true,
-            vertexShader: vs,
-            fragmentShader: fs,
-            uniforms: uniforms,
-        });
-
-        console.log("finish createAsciiMaterial")
-
-    }
+    createAsciiMaterial();
 
     function createVideoScene() {
         const vs = `
@@ -243,10 +94,16 @@ let video2ascii = function (_charset, _asciiMap, _asciiTexture, options) {
         console.log("finish createVideoScene")
     }
 
-    function _createAsciiMaterial() {
+    this.setAsciiTexture = (texture)=>{
+
+        console.log(asciiMaterial)
+        asciiMaterial.map = texture;
+
+    }
+
+    function createAsciiMaterial(){
 
         asciiMaterial = new THREE.MeshBasicMaterial({
-            map: asciiTexture,
             side: THREE.DoubleSide,
             transparent: true,
         });
@@ -430,6 +287,14 @@ let video2ascii = function (_charset, _asciiMap, _asciiTexture, options) {
         asciiMesh.instanceColor.needsUpdate = true;
 
     }
+
+    function resumeVideo(){
+        console.log("on focus")
+        video.play();
+    }
+
+    window.addEventListener('focus',resumeVideo);
+
 }
 
 export { video2ascii };
