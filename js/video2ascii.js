@@ -156,7 +156,7 @@ let video2ascii = function (_charset, _asciiMap, options) {
         }
 
         try {
-            const stream = await navigator.mediaDevices.getUserMedia(constraints).then(()=>{window.DeviceOrientationEvent.requestPermission()});
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
             return gotStream(stream);
         } catch (error) {
             return handleError(error);

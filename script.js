@@ -39,51 +39,6 @@ let cubeHalfHeight = cubeHeight / 2;
 const title = document.getElementById('title');
 
 let isMobile = false;
-let isEnableDeviceOrientation = false;
-const isSupportDeviceOrientation = Boolean(window.DeviceOrientationEvent);
-let isOpenWindow = false;
-let linkURL = "";
-
-async function setDeviceOrientation() {
-
-    async function getDeviceOrientation() {
-        console.log("getDeviceOrientation start")
-        rotateControls = new DeviceOrientationControls(rotateCamera);
-        await rotateControls.connect()
-            .then((value) => {
-                console.log(rotateControls)
-                isEnableDeviceOrientation = Boolean(rotateControls.deviceOrientation.returnValue);
-                isEnableDeviceOrientation = true;
-                initZoomControls();
-                console.log("getDeviceOrientation fullfilled end")
-            }, (value) => {
-                initZoomControls();
-                initRotateControls();
-                console.log("getDeviceOrientation reject end")
-            })
-        title.innerText = " It's all here. "
-        return "Fulfilled"
-    }
-
-    function awaitForClick(target) {
-        return new Promise(resolve => {
-            console.log("set click Event");
-            target.addEventListener("click", resolve, { once: true });
-        });
-    };
-
-    //await式は右辺のPromiseインスタンスがFulfilledまたはRejectedになるまでその場で非同期処理の完了を待ちます。
-    await awaitForClick(renderer.domElement).then(getDeviceOrientation)
-    console.log("clicked")
-    return "Fulfilled"
-
-    // Async Functionが値をreturnした場合、その返り値を持つFulfilledなPromiseを返す
-    // Async FunctionがPromiseをreturnした場合、その返り値のPromiseをそのまま返す
-    // Async Function内で例外が発生した場合は、そのエラーを持つRejectedなPromiseを返す
-    // 何もreturnしていない場合はundefinedを返したのと同じ扱いとなる
-}
-
-
 
 window.addEventListener('load', init);
 
@@ -116,28 +71,7 @@ function init() {
     mainLight = new THREE.PointLight(0xcccccc, 2, window.innerWidth, 1);
     scene.add(mainLight);
 
-    console.log(isSupportDeviceOrientation)
-
     loadData().then(animate);
-
-    // if (isMobile && isSupportDeviceOrientation) {
-    //     title.innerText = 'touch to allow'
-    //     Promise.all([setDeviceOrientation(), loadData()])
-    //         .then(() => {
-    //             console.log("then")
-    //             animate();
-    //         });
-    // } else {
-    //     initZoomControls();
-    //     initRotateControls();
-    //     loadData().then(animate);
-    // }
-
-    // window.onpageshow = function (event) {
-    //     if (event.persisted) {
-    //         onWindowResize();
-    //     }
-    // };
 
 }
 
@@ -252,37 +186,6 @@ function animate() {
 
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
-
-}
-
-async function getDeviceOrientation() {
-
-    if (!isMobile) {
-        initZoomControls();
-        initRotateControls();
-        return
-    }
-
-    if(!Boolean(window.DeviceOrientationEvent)){
-        initZoomControls();
-        initRotateControls();
-        return
-    }
-
-    rotateControls = new DeviceOrientationControls(rotateCamera);
-    await rotateControls.connect()
-            .then((value) => {
-                console.log(rotateControls)
-                isEnableDeviceOrientation = Boolean(rotateControls.deviceOrientation.returnValue);
-                isEnableDeviceOrientation = true;
-                initZoomControls();
-                console.log("getDeviceOrientation fullfilled end")
-            }, (value) => {
-                initZoomControls();
-                initRotateControls();
-                console.log("getDeviceOrientation reject end")
-            })
-    return;
 
 }
 
@@ -529,16 +432,44 @@ async function loadData() {
 
         async function permission(){
 
-            function awaitForClick(target) {
-                return new Promise(resolve => {
-                    console.log("set click Event");
-                    target.addEventListener("click", resolve, { once: true });
-                });
-            };
+            // function awaitForClick(target) {
+            //     return new Promise(resolve => {
+            //         console.log("set click Event");
+            //         target.addEventListener("click", resolve, { once: true });
+            //     });
+            // };
+            async function getDeviceOrientation() {
+
+                if (!isMobile) {
+                    initZoomControls();
+                    initRotateControls();
+                    return
+                }
+            
+                if(!Boolean(window.DeviceOrientationEvent)){
+                    initZoomControls();
+                    initRotateControls();
+                    return
+                }
+            
+                rotateControls = new DeviceOrientationControls(rotateCamera);
+                await rotateControls.connect()
+                        .then((value) => {
+                            console.log("isEnableDeviceOrientation")
+                            initZoomControls();
+                            console.log("getDeviceOrientation fullfilled end")
+                        }, (value) => {
+                            initZoomControls();
+                            initRotateControls();
+                            console.log("getDeviceOrientation reject end")
+                        })
+                return;
+            
+            }
             
             //await式は右辺のPromiseインスタンスがFulfilledまたはRejectedになるまでその場で非同期処理の完了を待ちます。
             await Promise.all([
-                //awaitForClick(window).then(getDeviceOrientation),
+                getDeviceOrientation(),
                 effect.startVideo()
             ])
 
