@@ -153,10 +153,20 @@ function onMouseDown(event) {
         //const charID = asciiMesh.geometry.attributes.asciiInstanceTextureID.getX(instanceId);
         //console.log(charID)
         //console.log(charset[charID], linkURLs[urlID])
-
+        //ga('send', 'event', 'onMouseDown', 'link', 'linkURLs[urlID]',1);
+        gtag('event', 'myClick', {
+            'event_category' : 'engagement',
+            'event_label' : linkURLs[urlID]
+          });
         window.open(linkURLs[urlID], '_blank');
 
+    }else{
+        gtag('event', 'myClick', {
+            'event_category' : 'engagement',
+            'event_label' : 'other',
+          });
     }
+
 }
 
 function animate() {
@@ -450,8 +460,10 @@ async function loadData() {
         
         }
 
+        initZoomControls();
+        initRotateControls();
         await Promise.all([
-            effect.startVideo().then(getDeviceOrientation()),
+            effect.startVideo(),
             createText(textTextureID, textAlpha),
             createCaptureMesh(captureTextureID)
         ])
