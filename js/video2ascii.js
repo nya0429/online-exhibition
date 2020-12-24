@@ -16,7 +16,7 @@ let video2ascii = function (_charset, _asciiMap, options) {
         depth: false,
         stencil: false,
     });
-    renderer.setSize(document.documentElement.clientWidth / 2, document.documentElement.clientHeight / 2);
+    renderer.setSize(window.innerWidth / 2, window.innerHeight / 2);
 
     const webGLCtx = renderer.getContext();
     let oImgData = [];

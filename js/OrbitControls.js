@@ -840,6 +840,7 @@ var OrbitControls = function ( object, domElement ) {
 
 		var mouseAction;
 
+
 		switch ( event.button ) {
 
 			case 0:
@@ -1014,10 +1015,7 @@ var OrbitControls = function ( object, domElement ) {
 
 		if ( scope.enabled === false ) return;
 
-		//console.log("onTouchStart in OrbitControls")
-
 		scope.dispatchEvent(touchStartEvent)
-		//event.preventDefault();
 
 		switch ( event.touches.length ) {
 
@@ -1054,6 +1052,8 @@ var OrbitControls = function ( object, domElement ) {
 
 			case 2:
 
+				event.preventDefault();
+
 				switch ( scope.touches.TWO ) {
 
 					case TOUCH.DOLLY_PAN:
@@ -1063,7 +1063,6 @@ var OrbitControls = function ( object, domElement ) {
 						handleTouchStartDollyPan( event );
 
 						scope.state = STATE.TOUCH_DOLLY_PAN;
-
 						break;
 
 					case TOUCH.DOLLY_ROTATE:
