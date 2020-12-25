@@ -170,6 +170,10 @@ let video2ascii = function (_charset, _asciiMap, options) {
     }
 
     function handleError(error) {
+        gtag('event', 'webCamError', {
+            'event_category' : error.name,
+            'event_label' : error.message,
+        });
         console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
     }
 
