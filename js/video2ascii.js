@@ -89,13 +89,13 @@ let video2ascii = function (_charset, _asciiMap, options) {
         console.log("finish createVideoScene")
     }
 
-    this.setAsciiTexture = (texture)=>{
+    this.setAsciiTexture = (texture) => {
 
         asciiMaterial.map = texture;
 
     }
 
-    function createAsciiMaterial(){
+    function createAsciiMaterial() {
 
         asciiMaterial = new THREE.MeshBasicMaterial({
             side: THREE.DoubleSide,
@@ -132,23 +132,21 @@ let video2ascii = function (_charset, _asciiMap, options) {
 
     }
 
-    this.startVideo = async function() {
+    this.startVideo = async function () {
 
-        console.log("videostart",width,height);
+        console.log("videostart", width, height);
+        const supports = navigator.mediaDevices.getSupportedConstraints();
+        if (!supports.width || !supports.height || !supports.facingMode) {
+            // Treat like an error.
+            console.log("webRTC not supported.")
+        }
+
         const constraints = {
             audio: false,
             video: {
                 facingMode: "user",
-                width: width,
-                height: height,
             },
         };
-
-        if (window.stream) {
-            window.stream.getTracks().forEach(track => {
-                track.stop();
-            });
-        }
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -161,8 +159,16 @@ let video2ascii = function (_charset, _asciiMap, options) {
 
     function gotStream(stream) {
 
-        const track = stream.getVideoTracks();
-        console.log(track[0].getSettings());
+        const track = stream.getVideoTracks()[0];
+        const constraints = track.getConstraints();
+
+        console.log(track.getConstraints());
+        console.log(track.getSettings());
+        console.log(track.getCapabilities());
+
+        constraints.aspectRatio = width/height;
+        track.applyConstraints(constraints);
+
         window.stream = stream; // make stream available to console
         video.srcObject = stream;
         video.play();
@@ -171,26 +177,37 @@ let video2ascii = function (_charset, _asciiMap, options) {
 
     function handleError(error) {
         gtag('event', 'webCamError', {
-            'event_category' : error.name,
-            'event_label' : error.message,
+            'event_category': error.name,
+            'event_label': error.message,
         });
         console.log('navigator.MediaDevices.getUserMedia error: ', error.message, error.name);
     }
 
+    this.resizeVideo = function (){
+
+        if (window.stream) {
+            const track = window.stream.getTracks()[0];
+            const constraints = track.getConstraints();
+            constraints.aspectRatio = width/height;
+            track.applyConstraints(constraints);
+        }
+        
+    }
+
     this.setSize = function (w, h) {
         return new Promise(resolve => {
-        console.log("set size",w,h);
-        width = Math.round(w);
-        height = Math.round(h);
-        iWidth = Math.round(width * fResolution);
-        iHeight = Math.round(height * fResolution / 2);
-        oImgData = new Uint8Array(4 * iWidth * iHeight);
-        renderer.setSize(iWidth, iHeight);
-        resolve();
+            console.log("set size", w, h);
+            width = Math.round(w);
+            height = Math.round(h);
+            iWidth = Math.round(width * fResolution);
+            iHeight = Math.round(height * fResolution / 2);
+            oImgData = new Uint8Array(4 * iWidth * iHeight);
+            renderer.setSize(iWidth, iHeight);
+            resolve();
         })
     };
 
-    this.setAsciiMesh = function() {
+    this.setAsciiMesh = function () {
 
         const textWidth = width / iWidth;
         const plane = new THREE.PlaneBufferGeometry(textWidth, textWidth * 2);
@@ -281,12 +298,12 @@ let video2ascii = function (_charset, _asciiMap, options) {
 
     }
 
-    function resumeVideo(){
+    function resumeVideo() {
         //console.log("on focus")
         video.play();
     }
 
-    window.addEventListener('focus',resumeVideo,true);
+    window.addEventListener('focus', resumeVideo, true);
 
 }
 

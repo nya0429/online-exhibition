@@ -111,7 +111,7 @@ function onWindowResize() {
     setBaseSize();
     setCameraViewport();
     if (!isMobile) {
-        effect.setSize(cubeHalfWidth, cubeHalfHeight).then(effect.startVideo());
+        effect.setSize(cubeHalfWidth, cubeHalfHeight).then(effect.resizeVideo());
         scene.remove(asciiMesh)
         asciiMesh.geometry.dispose();
         asciiMesh = effect.setAsciiMesh();
